@@ -5,7 +5,7 @@
 _commit='7511545ee20664e3b8b8d3322c0ffe7567c56f7a'
 pkgname=devos-quickshell
 pkgver=0.1.0.r1
-pkgrel=1
+pkgrel=2
 pkgdesc='Quickshell pinned for the DevOS desktop (end-4)'
 arch=('x86_64')
 url='https://git.outfoxxed.me/quickshell/quickshell'
@@ -20,10 +20,17 @@ makedepends=('cli11' 'cmake' 'git' 'ninja' 'qt6-shadertools' 'spirv-tools' 'vulk
 provides=('quickshell')
 conflicts=('quickshell')
 source=("quickshell::git+$url.git#commit=$_commit"
-        'quickshell-check.hook')
+        'quickshell-check.hook'
+        'qt612-moc-includes.patch')
 # The git source is pinned by commit hash (BLD-006).
 sha256sums=('SKIP'
-            '8543e21aeaaa5441b73a679160e7601a957f16c433e8d6bd9257e80bd0e94083')
+            '8543e21aeaaa5441b73a679160e7601a957f16c433e8d6bd9257e80bd0e94083'
+            '27094613ca37fd6d887fbf7da74eb766b1c0158b642ee24fcab86320f9b9b536')
+
+prepare() {
+    # Qt 6.12 rejects meta types that are only forward-declared (upstream 5d5d498).
+    git -C quickshell apply "$srcdir/qt612-moc-includes.patch"
+}
 
 build() {
     cmake -S quickshell -B build -G Ninja \
