@@ -237,6 +237,8 @@ install_pacman_conf() {
     local conf
     conf="$(sed '\|^Server = file:///opt/offline-repo$|d' /etc/pacman.conf)"
     if [[ -n "$url" ]]; then
+        # Per-line anchors; ${conf//…} cannot express ^…$.
+        # shellcheck disable=SC2001
         sed "s|^Server = file:///opt/devos-repo$|Server = $url|" <<<"$conf" >"$TARGET/etc/pacman.conf"
     else
         # No published repository yet: keep the installed system on the official repos only.

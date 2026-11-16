@@ -52,7 +52,7 @@ cat >"$WORK/embed.cfg" <<'EOF'
 search --no-floppy --set=root --file /devos-preview
 configfile /boot/grub/grub.cfg
 EOF
-grub-mkstandalone -O x86_64-efi --modules="$(echo $MODULES)" --locales="en@quot" --themes="" \
+grub-mkstandalone -O x86_64-efi --modules="${MODULES//$'\n'/ }" --locales="en@quot" --themes="" \
     --disable-shim-lock -o "$WORK/BOOTX64.EFI" "boot/grub/grub.cfg=$WORK/embed.cfg"
 
 mkdir -p "$WORK/fs/EFI/BOOT" "$WORK/fs/boot/grub/themes"
@@ -70,6 +70,8 @@ mformat -i "$WORK/esp.img" -F ::
 mcopy -s -i "$WORK/esp.img" "$WORK/fs/"* ::
 
 cp "$OVMF_VARS" "$WORK/vars.fd"
+# Commas are QEMU option syntax, not array separators.
+# shellcheck disable=SC2054
 QEMU=(qemu-system-x86_64 -machine q35 -m 512 -accel kvm -accel tcg
       -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE"
       -drive if=pflash,format=raw,file="$WORK/vars.fd"

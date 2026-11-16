@@ -122,7 +122,7 @@ ISO="$OUT_DIR/devos-$DEVOS_VERSION-x86_64.iso"
 
 # Hand the results back to the invoking user.
 if [[ -n "${SUDO_UID:-}" ]]; then
-    chown "$SUDO_UID:$SUDO_GID" "$OUT_DIR" "$ISO" "$ISO.sha256"
+    chown "$SUDO_UID:${SUDO_GID:-}" "$OUT_DIR" "$ISO" "$ISO.sha256"
 fi
 $KEEP_WORK || rm -rf -- "$WORK_DIR"
 
