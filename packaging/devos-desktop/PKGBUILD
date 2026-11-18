@@ -11,7 +11,7 @@ _end4_commit=2f0c8bf42b803f4d597572f2a014d4e78d7d9f26
 _shapes_commit=e31ec4cb4ebf6a46b267f5c42eabf6874916fa16   # end-4's git submodule at that commit
 pkgname=devos-desktop
 pkgver=0.1.0
-pkgrel=4
+pkgrel=5
 pkgdesc='DevOS desktop: Hyprland + end-4 with the DevOS shell'
 arch=('any')
 url='https://github.com/DevOS'
@@ -52,6 +52,9 @@ prepare() {
     local kb=dots-hyprland/dots/.config/hypr/hyprland/keybinds.lua
     sed -i -f "$_devos/patches/end4-keybinds.sed" "$kb"
     grep -q 'devos:aiToggle' "$kb" || { error "end-4 keybind patch did not apply"; return 1; }
+    local gen=dots-hyprland/dots/.config/hypr/hyprland/general.lua
+    sed -i -f "$_devos/patches/end4-general.sed" "$gen"
+    grep -qE '^\s*render_power = 4,$' "$gen" || { error "end-4 general.lua patch did not apply"; return 1; }
     for f in execs rules; do
         cat "$_devos/overrides/hypr/custom/$f.lua" >>"dots-hyprland/dots/.config/hypr/custom/$f.lua"
     done

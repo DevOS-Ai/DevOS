@@ -6,4 +6,10 @@
 if systemd-detect-virt --vm --quiet; then
     export AQ_NO_ATOMIC=1
 fi
+# VirtualBox and VMware expose an SVGA GPU on which Qt cannot create EGL surfaces,
+# so Quickshell (the end-4 bar and DevOS shell) exits at start; with 3D off in the
+# VM, Hyprland itself also crashes. Mesa's software renderer works in both cases.
+case "$(systemd-detect-virt)" in
+    oracle|vmware) export LIBGL_ALWAYS_SOFTWARE=1 ;;
+esac
 exec Hyprland
