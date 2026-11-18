@@ -121,7 +121,7 @@ These decisions close questions left open in SRS 0.1. The owner approved them on
 | D-10 | Privileged operations | Package install/remove only through **`devos-pkg-helper`** via **polkit** with `auth_admin` (password every time). The agent never gets sudo. | Narrow, auditable privilege path. | Approved |
 | D-11 | Credential storage | **Secret Service** (gnome-keyring) via libsecret. If no Secret Service is available, the key is kept **in memory for the session only**. | Never write the key to disk in plaintext. | Approved |
 | D-12 | Tool protocol | Tools are described with **JSON Schema, MCP-compatible**, served by devosd on a Unix socket. | Lets any MCP-capable runtime (including Hermes) plug in without DevOS-specific code. | Approved |
-| D-13 | Agent Runtime | DevOS ships a minimal **native runtime** (reference implementation and fallback). **Hermes Agent** is integrated as an adapter **only if the spike in §14.4 passes**. | Avoids blocking the MVP on a third-party dependency, as AGENT-002 intended. | Approved |
+| D-13 | Agent Runtime | **DevOS Agent** is the agent: the open-source Hermes Agent engine (MIT), pinned and sealed in the `devos-agent` package, branded DevOS Agent in every user-facing surface. It keeps its own tools, memory, skills, subagents and scheduler; DevOS system actions reach it as the `devos` MCP tool set from devos-ai (§14.5). devosd's native runtime stays as the reference implementation. | Owner decision 2026-11-18: a capable agent for user- and system-level work, now and on a schedule, integrated into the shell instead of a separate app. | Approved (revised 2026-11-18) |
 | D-14 | Package sources | ISO contains only **official Arch repo packages** + packages from the **DevOS repo** (built from PKGBUILDs in this Git repo). **No AUR helpers, no AUR binaries.** | Reproducibility and supply-chain control. | Approved |
 | D-15 | end-4 integration | end-4 is **vendored at a pinned commit** and packaged as `devos-desktop` in the DevOS repo; DevOS overrides live in a separate layer (§8.2). | Satisfies DESK-004; upgrades are deliberate. | Approved |
 | D-16 | Repository layout | Archiso profile moves from `releng/` to **`iso/`**. See §23. | Matches project layout; `releng` is an upstream name. | Approved |
@@ -129,6 +129,7 @@ These decisions close questions left open in SRS 0.1. The owner approved them on
 | D-19 | AI key binding | **Super+A** opens the DevOS AI panel via a Quickshell global shortcut (`devos:aiToggle`); end-4's left sidebar keeps Super+B / Super+O. Implemented as a one-line patch of end-4's keybinds (DESK-021). | Super+A is end-4's AI key; a second binding in `custom/` would fire both. | Approved |
 | D-20 | Hyprland configuration | Follow end-4's current **Lua** configuration (`hyprland.lua`, `custom/*.lua`; verified on Hyprland 0.56). DevOS adds `custom/execs.lua` and `custom/rules.lua` content. | That is what the pinned end-4 uses. | Approved |
 | D-21 | devosd implementation | Python **standard library only**; Gemini through its documented REST API (no SDK). | No third-party Python dependencies to package (D-14); small attack surface. | Approved |
+| D-22 | DevOS Agent security model | The agent runs as the user, **without** the bubblewrap sandbox of §16.4. Risky terminal commands (engine smart approval) and every DevOS system tool that changes something (`trust: untrusted`, MCP `readOnlyHint`) wait for the user's Approve/Deny in the panel; scheduled jobs and the shell sidebar never run them (deny). Packages change only through devos-pkg-helper and polkit. System tool calls are written to the DevOS audit log. | Trades §14.4's sandbox gate for the engine's full capability, as decided in D-13. A sandboxed terminal backend for the agent is a follow-up. | Approved 2026-11-18 |
 | D-18 | Project license | **GPL-3.0-or-later** for DevOS code, pending license verification of end-4 and Hermes (§28 R-06). | Compatible with likely GPL components. | Pending — owner decision |
 
 ---
@@ -436,6 +437,18 @@ A minimal loop in DevOS: send messages + tools to the model, execute requested t
 ## 14.3 Hermes Adapter
 
 Launches Hermes Agent inside the runtime sandbox, configured to use devosd's provider proxy as its model endpoint and devosd's MCP tool endpoint as its only tool source.
+
+## 14.5 DevOS Agent (D-13, D-22)
+
+| ID | Requirement |
+|---|---|
+| AGENT-020 | `devos-agent` ships the engine at a pinned commit with its Python dependencies installed from the engine's lockfile with verified hashes; it never updates or downloads itself at runtime (D-14). |
+| AGENT-021 | A per-user service (`devos-agent.service`, started with the graphical session) serves a local HTTP API on 127.0.0.1, on a per-user port, authenticated with a random per-user key kept in `~/.local/share/devos/agent` (mode 0600). |
+| AGENT-022 | The DevOS AI panel (Super+A) shows the conversation, live tool steps, Approve once / for this session / Deny cards, Stop, history and schedules; Super+Ctrl+A opens it with the focused window as context. end-4's AI sidebar offers DevOS Agent as its default model. |
+| AGENT-023 | System-level tools (`devos mcp`): desktop state, windows, workspaces, apps, screenshots, notifications, system status, volume, brightness, Wi-Fi, package search and changes. Read-only tools carry `readOnlyHint`; all others require approval. |
+| AGENT-024 | Scheduled tasks (cron expressions or intervals) can be created by the user in the panel or by the agent on request, and are listed, paused, resumed, run and deleted from the panel. |
+| AGENT-025 | The model provider (Gemini, OpenRouter, OpenAI, or a local OpenAI-compatible server) is chosen in the panel or Welcome; the key goes to the agent on stdin, is checked against the provider, and is never placed on a command line. |
+| AGENT-026 | User-facing text, the process name and the service banner say DevOS Agent; the engine's license is installed under `/usr/share/licenses/devos-agent/`. |
 
 ## 14.4 Hermes Spike (gate for D-13)
 

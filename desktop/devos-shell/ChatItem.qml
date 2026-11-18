@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Layouts
 
-// One row of the conversation: user / model text, tool activity, approval
-// card (SRS PERM-003), task summary, errors.
+// One row of the conversation: user / model text, the model's thinking, tool activity,
+// subagents, approval card (SRS PERM-003), task summary, errors.
 Item {
     id: row
     required property var client
@@ -35,7 +35,9 @@ Item {
             : row.kind === "model" ? modelC
             : row.kind === "tool" ? toolC
             : row.kind === "approval" ? approvalC
-            : row.kind === "summary" ? summaryC : noteC
+            : row.kind === "summary" ? summaryC
+            : row.kind === "thinking" ? thinkingC
+            : row.kind === "subagent" ? subagentC : noteC
     }
 
     Component {
@@ -103,9 +105,11 @@ Item {
                     elide: Text.ElideRight
                 }
                 Text {
-                    visible: row.state === "blocked"
+                    visible: (row.state === "blocked" || row.state === "failed") && row.reason !== ""
                     Layout.fillWidth: true
-                    text: "Blocked: " + row.reason
+                    text: (row.state === "blocked" ? "Blocked: " : "") + row.reason
+                    maximumLineCount: 4
+                    elide: Text.ElideRight
                     wrapMode: Text.Wrap
                     color: Theme.danger
                     font.pixelSize: 12
@@ -273,6 +277,86 @@ Item {
                     small: true
                     onClicked: row.client.undo(row.task, false)
                 }
+            }
+        }
+    }
+
+    // The model's reasoning: one muted line, expands on click.
+    Component {
+        id: thinkingC
+        Rectangle {
+            property bool expanded: false
+            implicitHeight: thinkCol.implicitHeight + 16
+            radius: 10
+            color: Qt.rgba(0.55, 0.36, 0.96, 0.06)
+            border.color: Qt.rgba(0.55, 0.36, 0.96, 0.22)
+            ColumnLayout {
+                id: thinkCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 8
+                anchors.leftMargin: 12
+                spacing: 4
+                Text {
+                    text: (parent.parent.expanded ? "▾ " : "▸ ") + "Thinking"
+                    color: Theme.violet
+                    font.pixelSize: 12
+                    font.weight: Font.DemiBold
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: row.text
+                    wrapMode: Text.Wrap
+                    color: Theme.muted
+                    font.pixelSize: 12
+                    lineHeight: 1.2
+                    maximumLineCount: parent.parent.expanded ? 400 : 2
+                    elide: Text.ElideRight
+                }
+            }
+            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: parent.expanded = !parent.expanded }
+        }
+    }
+
+    // A delegated subtask running in parallel (subagent).
+    Component {
+        id: subagentC
+        Rectangle {
+            implicitHeight: subCol.implicitHeight + 16
+            radius: 10
+            color: Theme.surface
+            border.color: row.state === "running" ? Theme.teal : Theme.border
+            ColumnLayout {
+                id: subCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 8
+                anchors.leftMargin: 12
+                spacing: 2
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Text {
+                        text: row.state === "running" ? "⟳" : row.state === "done" ? "✓" : "✗"
+                        color: row.state === "done" ? Theme.success : row.state === "running" ? Theme.teal : Theme.danger
+                        font.pixelSize: 13
+                        RotationAnimation on rotation {
+                            running: row.state === "running"; loops: Animation.Infinite
+                            from: 0; to: 360; duration: 1400
+                        }
+                    }
+                    Text { text: "Subagent"; color: Theme.teal; font.pixelSize: 11; font.weight: Font.DemiBold }
+                    Text { Layout.fillWidth: true; text: row.text; color: Theme.text; font.pixelSize: 12
+                           elide: Text.ElideRight }
+                }
+                Text { visible: row.detail !== ""; text: row.detail; color: Theme.faint; font.pixelSize: 11
+                       Layout.leftMargin: 21 }
+                Text { visible: row.reason !== "" && row.state !== "running"; Layout.fillWidth: true
+                       Layout.leftMargin: 21; text: row.reason; wrapMode: Text.Wrap; maximumLineCount: 4
+                       elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 12 }
             }
         }
     }

@@ -31,6 +31,7 @@ cryptsetup
 # DevOS ([devos] repository)
 devos-desktop
 devos-ai
+devos-agent
 devos-grub-theme
 devos-plymouth-theme
 devos-profile-general

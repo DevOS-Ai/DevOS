@@ -12,7 +12,7 @@ _end4_commit=2f0c8bf42b803f4d597572f2a014d4e78d7d9f26
 _shapes_commit=e31ec4cb4ebf6a46b267f5c42eabf6874916fa16   # end-4's git submodule at that commit
 pkgname=devos-desktop
 pkgver=0.1.0
-pkgrel=6
+pkgrel=12
 pkgdesc='DevOS desktop: Hyprland + end-4 with the DevOS shell'
 arch=('any')
 url='https://github.com/DevOS'
@@ -23,7 +23,7 @@ depends=(
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-desktop-portal-kde
     greetd greetd-tuigreet gnome-keyring polkit-kde-agent accountsservice
     # shell (end-4 + DevOS shell)
-    devos-quickshell devos-ai qt6-5compat qt6-imageformats qt6-multimedia qt6-positioning
+    devos-quickshell devos-ai devos-agent qt6-5compat qt6-imageformats qt6-multimedia qt6-positioning
     qt6-sensors qt6-svg qt6-virtualkeyboard qt6-wayland kirigami kdialog syntax-highlighting
     # end-4 tools
     kitty fish starship eza fuzzel matugen cliphist wl-clipboard jq ripgrep bc curl wget rsync
@@ -60,6 +60,15 @@ prepare() {
     local ses=dots-hyprland/dots/.config/quickshell/ii/modules/common/functions/Session.qml
     sed -i -f "$_devos/patches/end4-session.sed" "$ses"
     grep -q 'uwsm stop' "$ses" || { error "end-4 Session.qml patch did not apply"; return 1; }
+    # DevOS Agent as the first model of end-4's AI sidebar.
+    local ai=dots-hyprland/dots/.config/quickshell/ii/services/Ai.qml
+    sed -i -f "$_devos/patches/end4-ai.sed" "$ai"
+    [[ $(grep -c 'devos-agent\|devosAgent' "$ai") -ge 6 ]] || { error "end-4 Ai.qml patch did not apply"; return 1; }
+    local per=dots-hyprland/dots/.config/quickshell/ii/modules/common/Persistent.qml
+    sed -i -f "$_devos/patches/end4-persistent.sed" "$per"
+    grep -q 'property string model: "devos-agent"' "$per" || { error "end-4 Persistent.qml patch did not apply"; return 1; }
+    install -Dm644 "$_devos/overrides/quickshell/devos-symbolic.svg" \
+        dots-hyprland/dots/.config/quickshell/ii/assets/icons/devos-symbolic.svg
     # Terminal and shell colors without end-4's PyPI-only Python module: matugen
     # renders material_colors.scss, and switchwall.sh keeps it when Python is missing.
     local sw=dots-hyprland/dots/.config/quickshell/ii/scripts/colors/switchwall.sh
@@ -75,7 +84,7 @@ prepare() {
         "input_path = '~/.config/matugen/templates/devos/material_colors.scss'" \
         "output_path = '~/.local/state/quickshell/user/generated/material_colors.scss'" \
         >>dots-hyprland/dots/.config/matugen/config.toml
-    for f in execs rules; do
+    for f in execs rules keybinds; do
         cat "$_devos/overrides/hypr/custom/$f.lua" >>"dots-hyprland/dots/.config/hypr/custom/$f.lua"
     done
 }

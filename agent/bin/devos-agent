@@ -1,0 +1,30 @@
+#!/bin/sh
+# DevOS Agent (SRS §14, AGENT-001): the operating-system agent of DevOS.
+#
+#   devos-agent                 interactive terminal session
+#   devos-agent setup-provider  connect a model provider (key on stdin); used by the panel
+#   devos-agent set-option      change an allow-listed setting (approvals, reasoning)
+#   devos-agent client-info     where the desktop shell reaches the agent service
+#   devos-agent <command> ...   any engine command (model, cron, skills, sessions, mcp, ...)
+#
+# The background service (systemctl --user status devos-agent) serves the DevOS AI panel,
+# the shell sidebar and scheduled jobs on 127.0.0.1, authenticated with a per-user key.
+set -eu
+
+export HERMES_HOME="${DEVOS_AGENT_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/devos/agent}"
+export HERMES_BIN=/usr/bin/devos-agent
+# Packaged install: no self-update, no runtime downloads of the engine's dependencies.
+export HERMES_DISABLE_LAZY_INSTALLS=1
+
+/usr/lib/devos/agent/init-home
+
+case "${1:-}" in
+    setup-provider|set-option)
+        exec /usr/bin/python3 -I /usr/lib/devos/agent/provider.py "$@"
+        ;;
+    client-info)
+        cat "$HERMES_HOME/client.json"
+        exit
+        ;;
+esac
+exec /usr/bin/python3 -I /usr/lib/devos/agent/launch.py "$@"

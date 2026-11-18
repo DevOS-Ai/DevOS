@@ -1,0 +1,19 @@
+[Unit]
+Description=DevOS Agent
+Documentation=file:///usr/share/doc/devos-agent/README.md
+# Started with the desktop session so the agent sees its Wayland/Hyprland environment
+# (UWSM exports it before graphical-session.target).
+PartOf=graphical-session.target
+After=graphical-session.target network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/devos-agent gateway run
+Restart=on-failure
+RestartSec=5
+# Let running tasks and scheduled jobs finish (the engine drains for up to ~70 s).
+TimeoutStopSec=90
+Slice=app.slice
+
+[Install]
+WantedBy=graphical-session.target

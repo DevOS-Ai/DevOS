@@ -1,0 +1,88 @@
+# Maintainer: Ehsan Fazli
+# DevOS Agent: the operating-system agent of DevOS (SRS §14, AGENT-001..). The agent engine
+# is the MIT-licensed open-source agent below, pinned by commit (BLD-006) and sealed: its
+# Python dependencies come from the engine's lockfile with verified hashes and are installed
+# into the package, so the agent never updates or downloads itself at runtime (D-14).
+# Built from this repository by scripts/build-repo.sh (SRS BLD-003).
+
+_commit=36922ad064d65dcf25f8f48df81e1ccf9a55de67
+_engine_version=0.21.5
+pkgname=devos-agent
+pkgver=0.1.0
+pkgrel=4
+pkgdesc='DevOS Agent: system and user level AI agent with scheduled tasks'
+arch=('x86_64')
+url='https://github.com/DevOS'
+license=('GPL-3.0-or-later' 'MIT')
+# The bundled dependencies are built for this Python minor version.
+depends=('python>=3.14' 'python<3.15' 'devos-ai' 'git' 'ripgrep' 'grim' 'libnotify'
+         'wireplumber' 'brightnessctl' 'networkmanager' 'polkit' 'systemd')
+makedepends=('uv')
+options=('!strip' '!debug')
+source=("engine-$_commit.tar.gz::https://github.com/NousResearch/hermes-agent/archive/$_commit.tar.gz")
+sha256sums=('b6506ada6cc24f5d5fbd1f1efcde9e5807e97b43d68441015ffdd51101a2a832')
+
+_agent="$startdir/../../agent"
+_lib=/usr/lib/devos/agent
+# Engine extras: MCP client (DevOS system tools), keyless web search, the HTTP API server
+# the desktop talks to (part of the messaging extra), and the Anthropic SDK (Claude models).
+_extras=(mcp ddgs messaging anthropic)
+
+prepare() {
+    cd "$srcdir/hermes-agent-$_commit"
+    sed -i -f "$_agent/patches/engine-branding.sed" hermes_cli/main.py hermes_cli/gateway.py
+    sed -i -f "$_agent/patches/engine-fixes.sed" gateway/platforms/api_server.py
+    ! grep -q 'include_editorial=True' gateway/platforms/api_server.py || { error "engine fixes did not apply"; return 1; }
+    grep -q 'setproctitle("devos-agent")' hermes_cli/main.py && grep -q 'b"devos-agent"' hermes_cli/main.py \
+        && grep -q 'DevOS Agent starting' hermes_cli/gateway.py || { error "engine branding patch did not apply"; return 1; }
+}
+
+build() {
+    cd "$srcdir/hermes-agent-$_commit"
+    local extra_args=()
+    for e in "${_extras[@]}"; do extra_args+=(--extra "$e"); done
+    uv export --frozen --no-dev --no-emit-project "${extra_args[@]}" -o "$srcdir/requirements.txt"
+    rm -rf "$srcdir/site"
+    UV_CACHE_DIR="$srcdir/uv-cache" uv pip install --python /usr/bin/python3 --require-hashes \
+        --no-compile --target "$srcdir/site" -r "$srcdir/requirements.txt"
+}
+
+package() {
+    local engine="$srcdir/hermes-agent-$_commit"
+    install -d "$pkgdir$_lib/src"
+    # The engine's Python code and bundled resources; no frontends, tests or build tooling.
+    tar -C "$engine" -cf - \
+        --exclude=./.git --exclude='__pycache__' --exclude=./node_modules --exclude=./web \
+        --exclude=./website --exclude=./tests --exclude=./tests-js --exclude=./ui-tui \
+        --exclude=./apps --exclude=./docker --exclude=./nix --exclude=./evals . \
+        | tar -C "$pkgdir$_lib/src" -xf -
+    cp -a "$srcdir/site" "$pkgdir$_lib/site"
+    # Skills about developing the engine itself (its repo and desktop app) do not apply on DevOS.
+    local skill
+    for skill in autonomous-ai-agents/hermes-agent software-development/hermes-agent-skill-authoring \
+                 software-development/inspecting-hermes-desktop-dom; do
+        rm -rf "$pkgdir$_lib/src/skills/$skill"
+    done
+    # A sealed, externally updated install: no self-update, no runtime dependency sync.
+    cat >"$pkgdir$_lib/src/install-stamp.json" <<STAMP
+{"schemaVersion": 2, "commit": "$_commit", "commitDate": null, "branch": null, "dirty": false,
+ "builtAt": null, "baseVersion": "$_engine_version", "displayVersion": "$_engine_version",
+ "distance": 0, "source": "devos", "distribution": "devos", "updateMechanism": "external",
+ "payload": null, "tag": null}
+STAMP
+    python -m compileall -q -j0 -d "$_lib/src" "$pkgdir$_lib/src" >/dev/null || true
+    python -m compileall -q -j0 -d "$_lib/site" "$pkgdir$_lib/site" >/dev/null || true
+
+    install -Dm755 "$_agent/bin/devos-agent" "$pkgdir/usr/bin/devos-agent"
+    install -Dm755 "$_agent/lib/init-home" "$pkgdir$_lib/init-home"
+    install -Dm644 "$_agent/lib/launch.py" "$pkgdir$_lib/launch.py"
+    install -Dm644 "$_agent/lib/provider.py" "$pkgdir$_lib/provider.py"
+    install -Dm644 -t "$pkgdir/usr/share/devos/agent" "$_agent/defaults/SOUL.md" "$_agent/defaults/config.yaml"
+    install -Dm644 "$_agent/systemd/devos-agent.service" "$pkgdir/usr/lib/systemd/user/devos-agent.service"
+    # Every user's desktop session starts the agent.
+    install -d "$pkgdir/usr/lib/systemd/user/graphical-session.target.wants"
+    ln -s ../devos-agent.service "$pkgdir/usr/lib/systemd/user/graphical-session.target.wants/devos-agent.service"
+    install -Dm644 "$_agent/README.md" "$pkgdir/usr/share/doc/devos-agent/README.md"
+    # The engine's MIT license travels with it (third-party licenses are in each dist-info).
+    install -Dm644 "$engine/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE.engine"
+}

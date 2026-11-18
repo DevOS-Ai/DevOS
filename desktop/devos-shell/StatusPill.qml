@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 
-// DevOS AI activity indicator (SRS DESK-008, §20.3): visible only while the AI is
+// DevOS Agent activity indicator (SRS DESK-008, §20.3): visible only while the AI is
 // active (thinking / running / waiting) and the panel is closed. Click opens the panel.
 PanelWindow {
     id: pill
@@ -42,8 +42,8 @@ PanelWindow {
                 }
             }
             Text {
-                text: pill.client.status === "waiting" ? "DevOS AI needs your approval"
-                    : pill.client.status === "thinking" ? "DevOS AI · sending to Gemini" : "DevOS AI · running"
+                text: pill.client.status === "waiting" ? "DevOS Agent needs your approval"
+                    : pill.client.status === "thinking" ? "DevOS Agent · working" : "DevOS Agent · running a tool"
                 color: pill.client.status === "waiting" ? "#3a2a00" : Theme.text
                 font.pixelSize: 12
                 font.weight: Font.DemiBold

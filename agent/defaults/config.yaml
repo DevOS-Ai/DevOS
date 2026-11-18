@@ -1,0 +1,23 @@
+# DevOS Agent configuration. Created on first start from
+# /usr/share/devos/agent/config.yaml; later package updates never overwrite your edits.
+# Model and provider: set them in DevOS Settings > AI (or the Welcome), or with
+#   devos-agent model
+
+model:
+  provider: gemini
+  default: gemini-2.5-flash
+
+# Risky terminal commands and every DevOS system tool that changes something are shown
+# in the DevOS AI panel for you to approve. Scheduled jobs never run them unattended.
+approvals:
+  mode: smart
+  timeout: 300
+  cron_mode: deny
+
+# DevOS system tools: desktop (Hyprland), apps, screenshots, system status, volume,
+# brightness, Wi-Fi, packages (through polkit). Read-only tools run freely.
+mcp_servers:
+  devos:
+    command: /usr/bin/devos
+    args: [mcp]
+    trust: untrusted

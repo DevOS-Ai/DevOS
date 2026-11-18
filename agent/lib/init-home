@@ -1,0 +1,36 @@
+#!/bin/sh
+# Prepare a user's DevOS Agent home (HERMES_HOME) before every start. Idempotent; never
+# overwrites what the user changed.
+#   - identity (SOUL.md) and configuration from /usr/share/devos/agent on first start
+#   - the local API service: 127.0.0.1, a per-user port, a random per-user key
+#   - client.json (0600) for the desktop shell: where to reach the service and the key
+set -eu
+umask 077
+
+home="${HERMES_HOME:?}"
+defaults=/usr/share/devos/agent
+mkdir -p "$home"
+
+[ -e "$home/SOUL.md" ] || cp "$defaults/SOUL.md" "$home/SOUL.md"
+[ -e "$home/config.yaml" ] || cp "$defaults/config.yaml" "$home/config.yaml"
+
+env="$home/.env"
+touch "$env"
+setting() { grep -q "^$1=" "$env" || printf '%s=%s\n' "$1" "$2" >>"$env"; }
+value() { sed -n "s/^$1=//p" "$env" | tail -n 1; }
+
+# One port per user so several accounts on one machine never collide.
+port=$((41000 + $(id -u) % 20000))
+setting API_SERVER_ENABLED true
+setting API_SERVER_HOST 127.0.0.1
+setting API_SERVER_PORT "$port"
+setting API_SERVER_MODEL_NAME devos-agent
+if [ -z "$(value API_SERVER_KEY)" ]; then
+    sed -i '/^API_SERVER_KEY=/d' "$env"
+    printf 'API_SERVER_KEY=%s\n' "$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')" >>"$env"
+fi
+
+client="$home/client.json"
+new=$(printf '{"url": "http://127.0.0.1:%s", "key": "%s", "model": "devos-agent"}\n' \
+    "$(value API_SERVER_PORT)" "$(value API_SERVER_KEY)")
+[ "$(cat "$client" 2>/dev/null)" = "$new" ] || printf '%s\n' "$new" >"$client"

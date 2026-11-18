@@ -86,20 +86,21 @@ Item {
 
         Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
 
-        Text { text: "2 · DevOS AI (optional)"; color: Theme.text; font.pixelSize: 16; font.weight: Font.DemiBold }
+        Text { text: "2 · DevOS Agent"; color: Theme.text; font.pixelSize: 16; font.weight: Font.DemiBold }
         Text {
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
             // FB-003: AI is optional; DevOS is fully usable without it.
             text: win.client.keyStatus === "missing" || win.client.keyStatus === "unknown"
-                ? "Connect your own Google Gemini API key to use the AI assistant and agent. You can do this any time with Super+A."
-                : "Gemini is connected (" + win.client.keyStatus + "). Open the panel any time with Super+A."
+                ? "DevOS Agent works on your projects, files and the system itself, right away or on a schedule. "
+                  + "Connect a model (Gemini, OpenRouter, OpenAI or a local model) to start. Open it any time with Super+A."
+                : "DevOS Agent is ready. Open it any time with Super+A; risky actions always wait for your approval."
             color: Theme.muted
             font.pixelSize: 13
         }
         RowLayout {
             spacing: 8
-            DButton { label: "Configure Gemini"; variant: "primary"; onClicked: { win.openAiPanel(); win.finish(); } }
+            DButton { label: win.client.keyStatus === "ok" ? "Open DevOS Agent" : "Connect a model"; variant: "primary"; onClicked: { win.openAiPanel(); win.finish(); } }
             DButton { label: "Skip"; onClicked: win.finish() }
         }
 
