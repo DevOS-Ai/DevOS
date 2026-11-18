@@ -1,0 +1,123 @@
+# DevOS boot splash (SRS BOOT-010): logo, progress bar, and the disk unlock prompt
+# for encrypted installs (sd-encrypt asks through Plymouth). Palette: GRUB theme.
+
+Window.SetBackgroundTopColor(0.027, 0.039, 0.067);     # #070A11
+Window.SetBackgroundBottomColor(0.043, 0.067, 0.106);  # #0B111B
+
+cx = Window.GetX() + Window.GetWidth() / 2;
+cy = Window.GetY() + Window.GetHeight() / 2;
+
+# ---------------------------------------------------------------- logo
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(cx - logo.image.GetWidth() / 2);
+logo.sprite.SetY(cy - logo.image.GetHeight() / 2 - 40);
+logo.sprite.SetZ(10);
+logo.sprite.SetOpacity(0);
+
+# --------------------------------------------------------- progress bar
+track.image = Image("track.png");
+track.sprite = Sprite(track.image);
+track.sprite.SetX(cx - track.image.GetWidth() / 2);
+track.sprite.SetY(cy + logo.image.GetHeight() / 2 + 10);
+track.sprite.SetZ(10);
+track.sprite.SetOpacity(0);
+
+fill.original = Image("fill.png");
+fill.sprite = Sprite();
+fill.sprite.SetX(cx - track.image.GetWidth() / 2);
+fill.sprite.SetY(cy + logo.image.GetHeight() / 2 + 10);
+fill.sprite.SetZ(11);
+fill.shown = 0;
+
+tick = 0;
+fun refresh_callback() {
+    tick++;
+    # Fade the logo in over the first ~0.6 s (refresh runs at 50 Hz).
+    o = tick / 30;
+    if (o > 1) o = 1;
+    logo.sprite.SetOpacity(o);
+    track.sprite.SetOpacity(o);
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+fun progress_callback(duration, progress) {
+    w = Math.Int(fill.original.GetWidth() * progress);
+    if (w < 1) w = 1;
+    if (w != fill.shown) {
+        fill.sprite.SetImage(fill.original.Scale(w, fill.original.GetHeight()));
+        fill.shown = w;
+    }
+}
+Plymouth.SetBootProgressFunction(progress_callback);
+
+# ---------------------------------------------------- password prompt
+entry.image = Image("entry.png");
+bullet.image = Image("bullet.png");
+entry.sprite = Sprite(entry.image);
+entry.sprite.SetX(cx - entry.image.GetWidth() / 2);
+entry.sprite.SetY(cy + logo.image.GetHeight() / 2 + 48);
+entry.sprite.SetZ(20);
+entry.sprite.SetOpacity(0);
+prompt.sprite = Sprite();
+prompt.sprite.SetZ(20);
+bullets = [];
+
+fun hide_bullets() {
+    for (i = 0; bullets[i]; i++) bullets[i].SetOpacity(0);
+}
+
+fun display_normal_callback() {
+    entry.sprite.SetOpacity(0);
+    prompt.sprite.SetOpacity(0);
+    hide_bullets();
+    track.sprite.SetOpacity(1);
+    fill.sprite.SetOpacity(1);
+}
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+
+fun display_password_callback(text, count) {
+    track.sprite.SetOpacity(0);
+    fill.sprite.SetOpacity(0);
+    entry.sprite.SetOpacity(1);
+
+    if (text == "") text = "Enter the disk password";
+    img = Image.Text(text, 0.54, 0.59, 0.67, 1, "Sans 12");   # #8A96AB
+    prompt.sprite.SetImage(img);
+    prompt.sprite.SetX(cx - img.GetWidth() / 2);
+    prompt.sprite.SetY(entry.sprite.GetY() - img.GetHeight() - 10);
+    prompt.sprite.SetOpacity(1);
+
+    hide_bullets();
+    max = 24;
+    if (count > max) count = max;
+    gap = 16;
+    x0 = cx - (count * gap) / 2 + 3;
+    y0 = entry.sprite.GetY() + entry.image.GetHeight() / 2 - bullet.image.GetHeight() / 2;
+    for (i = 0; i < count; i++) {
+        if (!bullets[i]) bullets[i] = Sprite(bullet.image);
+        bullets[i].SetX(x0 + i * gap);
+        bullets[i].SetY(y0);
+        bullets[i].SetZ(21);
+        bullets[i].SetOpacity(1);
+    }
+}
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+
+# ------------------------------------------------------------ messages
+message.sprite = Sprite();
+message.sprite.SetZ(30);
+fun message_callback(text) {
+    img = Image.Text(text, 0.36, 0.41, 0.50, 1, "Sans 10");   # #5C6880
+    message.sprite.SetImage(img);
+    message.sprite.SetX(cx - img.GetWidth() / 2);
+    message.sprite.SetY(Window.GetY() + Window.GetHeight() - img.GetHeight() - 32);
+}
+Plymouth.SetMessageFunction(message_callback);
+
+fun quit_callback() {
+    logo.sprite.SetOpacity(0);
+    track.sprite.SetOpacity(0);
+    fill.sprite.SetOpacity(0);
+}
+Plymouth.SetQuitFunction(quit_callback);

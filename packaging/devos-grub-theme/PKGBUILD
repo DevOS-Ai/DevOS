@@ -3,7 +3,7 @@
 
 pkgname=devos-grub-theme
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc='DevOS GRUB theme'
 arch=('any')
 url='https://github.com/DevOS'

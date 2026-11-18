@@ -1,13 +1,23 @@
 #!/bin/sh
-# greetd greeter for DevOS (SRS DESK-010): the graphical login (Quickshell in the
-# cage kiosk compositor). Falls back to the text greeter if it cannot start.
-if command -v cage >/dev/null && command -v qs >/dev/null && [ -f /usr/share/devos/greeter/shell.qml ]; then
-    # cage draws no window decorations; keep Qt from drawing its own title bar.
-    export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
-    # Hardware cursor planes are unreliable on virtual GPUs.
-    if systemd-detect-virt --vm --quiet; then
-        export WLR_NO_HARDWARE_CURSORS=1
+# greetd greeter for DevOS (SRS DESK-010, D-03): the DevOS login screen (Quickshell)
+# on a minimal Hyprland, the same compositor and GPU path as the desktop.
+# Falls back to the text greeter if the graphical one cannot start.
+. /usr/lib/devos/gpu-env
+
+conf=/usr/share/devos/greeter/hyprland.lua
+if command -v Hyprland >/dev/null && command -v qs >/dev/null && [ -f "$conf" ]; then
+    # The greeter user has no writable home; keep Hyprland's cache and state in /tmp.
+    export XDG_CACHE_HOME=/tmp/devos-greeter/cache XDG_STATE_HOME=/tmp/devos-greeter/state
+    mkdir -p "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
+    rm -f /tmp/devos-greeter/failed
+    # start-hyprland is Hyprland's launcher (a crash watchdog; plain Hyprland shows a
+    # warning). Its log goes to the journal, not over the boot splash and console.
+    launch="Hyprland"
+    command -v start-hyprland >/dev/null && launch="start-hyprland --"
+    # devos-greeter-ui ends Hyprland once a session was started, or marks a failure.
+    # shellcheck disable=SC2086  # $launch is a command and its separator
+    if systemd-cat -t devos-greeter $launch --config "$conf" && [ ! -e /tmp/devos-greeter/failed ]; then
+        exit 0
     fi
-    cage -s -m last -- qs -p /usr/share/devos/greeter && exit 0
 fi
 exec tuigreet --time --remember --asterisks --greeting 'DevOS' --cmd devos-session

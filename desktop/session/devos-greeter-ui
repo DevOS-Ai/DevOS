@@ -1,0 +1,8 @@
+#!/bin/sh
+# Runs inside the greeter's Hyprland (see devos-greeter): shows the DevOS login screen,
+# then closes the greeter compositor so greetd can start the user's session.
+# If the login screen fails, devos-greeter falls back to the text greeter.
+if ! qs -p /usr/share/devos/greeter; then
+    touch /tmp/devos-greeter/failed
+fi
+hyprctl dispatch 'hl.dsp.exit()' >/dev/null

@@ -1,7 +1,8 @@
 # Maintainer: Ehsan Fazli
 # DevOS desktop: end-4 (illogical-impulse) on Hyprland at a pinned commit, plus the
 # DevOS layer: AI panel and Welcome (DevOS shell), keybinding patch, window rules,
-# greetd login, launcher entries (SRS §8, D-15).
+# greetd login on Hyprland, UWSM session, hyprlock lock screen, launcher entries
+# (SRS §8, D-15).
 #
 # Only official packages and [devos] packages are used (D-14). end-4 dependencies that
 # are AUR-only are replaced (adw-gtk-theme, breeze, noto-fonts-emoji, adwaita-cursors)
@@ -11,15 +12,16 @@ _end4_commit=2f0c8bf42b803f4d597572f2a014d4e78d7d9f26
 _shapes_commit=e31ec4cb4ebf6a46b267f5c42eabf6874916fa16   # end-4's git submodule at that commit
 pkgname=devos-desktop
 pkgver=0.1.0
-pkgrel=5
+pkgrel=6
 pkgdesc='DevOS desktop: Hyprland + end-4 with the DevOS shell'
 arch=('any')
 url='https://github.com/DevOS'
 license=('GPL-3.0-or-later' 'GPL-3.0-only')
 depends=(
     # compositor and session
-    hyprland hyprsunset hypridle hyprlock hyprpicker xdg-desktop-portal xdg-desktop-portal-hyprland
-    xdg-desktop-portal-gtk xdg-desktop-portal-kde greetd greetd-tuigreet cage gnome-keyring polkit-kde-agent
+    hyprland hyprsunset hypridle hyprlock hyprpicker uwsm libnewt xdg-desktop-portal
+    xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-desktop-portal-kde
+    greetd greetd-tuigreet gnome-keyring polkit-kde-agent accountsservice
     # shell (end-4 + DevOS shell)
     devos-quickshell devos-ai qt6-5compat qt6-imageformats qt6-multimedia qt6-positioning
     qt6-sensors qt6-svg qt6-virtualkeyboard qt6-wayland kirigami kdialog syntax-highlighting
@@ -55,6 +57,24 @@ prepare() {
     local gen=dots-hyprland/dots/.config/hypr/hyprland/general.lua
     sed -i -f "$_devos/patches/end4-general.sed" "$gen"
     grep -qE '^\s*render_power = 4,$' "$gen" || { error "end-4 general.lua patch did not apply"; return 1; }
+    local ses=dots-hyprland/dots/.config/quickshell/ii/modules/common/functions/Session.qml
+    sed -i -f "$_devos/patches/end4-session.sed" "$ses"
+    grep -q 'uwsm stop' "$ses" || { error "end-4 Session.qml patch did not apply"; return 1; }
+    # Terminal and shell colors without end-4's PyPI-only Python module: matugen
+    # renders material_colors.scss, and switchwall.sh keeps it when Python is missing.
+    local sw=dots-hyprland/dots/.config/quickshell/ii/scripts/colors/switchwall.sh
+    sed -i -f "$_devos/patches/end4-switchwall.sed" "$sw"
+    grep -q 'material_colors.scss.py' "$sw" || { error "end-4 switchwall.sh patch did not apply"; return 1; }
+    local fr=dots-hyprland/dots/.config/quickshell/ii/services/FirstRunExperience.qml
+    sed -i -f "$_devos/patches/end4-firstrun.sed" "$fr"
+    grep -q 'backgrounds/devos/devos.jpg' "$fr" && grep -q 'DevOS Welcome is shown instead' "$fr" \
+        || { error "end-4 FirstRunExperience.qml patch did not apply"; return 1; }
+    install -Dm644 "$_devos/overrides/matugen/material_colors.scss" \
+        dots-hyprland/dots/.config/matugen/templates/devos/material_colors.scss
+    printf '\n%s\n%s\n%s\n' '[templates.devos_material_colors]' \
+        "input_path = '~/.config/matugen/templates/devos/material_colors.scss'" \
+        "output_path = '~/.local/state/quickshell/user/generated/material_colors.scss'" \
+        >>dots-hyprland/dots/.config/matugen/config.toml
     for f in execs rules; do
         cat "$_devos/overrides/hypr/custom/$f.lua" >>"dots-hyprland/dots/.config/hypr/custom/$f.lua"
     done
@@ -66,6 +86,10 @@ package() {
     install -d "$pkgdir/etc/skel/.config"
     cp -r --no-preserve=ownership dots-hyprland/dots/.config/. "$pkgdir/etc/skel/.config/"
     find "$pkgdir/etc/skel" -name .git -prune -exec rm -rf {} +
+    # DESK-021: DevOS lock screen (hyprlock in the login design) and idle settings
+    # replace end-4's, which lock with its Quickshell lock instead of hyprlock.
+    install -m644 -t "$pkgdir/etc/skel/.config/hypr" \
+        "$_devos/overrides/hypr/hyprlock.conf" "$_devos/overrides/hypr/hypridle.conf"
     install -Dm644 "$_devos/skel/zshrc" "$pkgdir/etc/skel/.zshrc"
     install -Dm644 dots-hyprland/LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE.end-4"
 
@@ -73,11 +97,15 @@ package() {
     cp -r --no-preserve=ownership "$_devos/devos-shell/." "$pkgdir/usr/share/devos/shell/"
     install -Dm644 -t "$pkgdir/usr/share/applications" "$_devos"/applications/*.desktop
     install -Dm755 "$_devos/session/devos-session" "$pkgdir/usr/bin/devos-session"
-    # Graphical login: greeter files plus the shared DevOS theme and button.
+    install -Dm644 "$_devos/session/devos-gpu-env" "$pkgdir/usr/lib/devos/gpu-env"
+    # Default wallpaper: the DevOS background (same as GRUB, splash, login, lock).
+    install -Dm644 "$_devos/devos-greeter/background.jpg" "$pkgdir/usr/share/backgrounds/devos/devos.jpg"
+    # Graphical login: Hyprland config, greeter UI, plus the shared DevOS theme and button.
     install -d "$pkgdir/usr/share/devos/greeter"
     install -m644 -t "$pkgdir/usr/share/devos/greeter" "$_devos"/devos-greeter/* \
         "$_devos/devos-shell/Theme.qml" "$_devos/devos-shell/DButton.qml"
     install -Dm755 "$_devos/session/devos-greeter" "$pkgdir/usr/lib/devos/devos-greeter"
+    install -Dm755 "$_devos/session/devos-greeter-ui" "$pkgdir/usr/lib/devos/devos-greeter-ui"
     install -Dm644 "$_devos/greetd/devos-greeter.tmpfiles" "$pkgdir/usr/lib/tmpfiles.d/devos-greeter.conf"
     # greetd owns /etc/greetd and /etc/pam.d/greetd; devos-install installs these copies.
     install -Dm644 "$_devos/greetd/config.toml" "$pkgdir/usr/share/devos/greetd/config.toml"

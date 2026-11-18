@@ -1,0 +1,20 @@
+# Maintainer: Ehsan Fazli
+# Built from this repository by scripts/build-repo.sh (SRS BLD-003).
+
+pkgname=devos-plymouth-theme
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='DevOS Plymouth boot splash'
+arch=('any')
+url='https://github.com/DevOS'
+license=('GPL-3.0-or-later')
+depends=('plymouth')
+source=()
+
+_themedir="$startdir/../../boot/plymouth/devos"
+
+package() {
+    install -d "$pkgdir/usr/share/plymouth/themes/devos"
+    install -m644 -t "$pkgdir/usr/share/plymouth/themes/devos" \
+        "$_themedir"/devos.plymouth "$_themedir"/devos.script "$_themedir"/*.png
+}

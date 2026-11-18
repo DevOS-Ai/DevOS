@@ -1,0 +1,22 @@
+# DevOS GPU workarounds for virtual machines (SRS DESK-010).
+# Sourced (POSIX sh) by the login greeter and the desktop session, so both run the
+# same rendering path. Real hardware sets nothing here.
+
+case "$(systemd-detect-virt --vm 2>/dev/null)" in
+    none|"") ;;
+    *)
+        # Hyprland's atomic KMS commits can stall on virtual GPUs ("Cannot commit when
+        # a page-flip is awaiting") and freeze the screen after the first frame;
+        # legacy modesetting avoids it.
+        export AQ_NO_ATOMIC=1
+        ;;
+esac
+
+case "$(systemd-detect-virt --vm 2>/dev/null)" in
+    oracle|vmware)
+        # VirtualBox and VMware expose an SVGA GPU on which Qt cannot create EGL
+        # surfaces (Quickshell exits at start); with 3D off, Hyprland crashes too.
+        # Mesa's software renderer works in both cases.
+        export LIBGL_ALWAYS_SOFTWARE=1
+        ;;
+esac

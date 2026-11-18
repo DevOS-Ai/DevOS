@@ -1,0 +1,45 @@
+// DevOS (DESK-021): end-4's material_colors.scss rendered by matugen.
+// end-4 builds this file with a Python module (materialyoucolor) that is not in the
+// official repositories; DevOS uses only official packages, so matugen writes it.
+// Read by end-4's applycolor.sh for the terminal (kitty) and shell colors.
+// Background and text follow the wallpaper; ANSI hues are the DevOS palette.
+$background: {{colors.background.default.hex}};
+$onBackground: {{colors.on_background.default.hex}};
+$surface: {{colors.surface.default.hex}};
+$onSurface: {{colors.on_surface.default.hex}};
+$surfaceVariant: {{colors.surface_variant.default.hex}};
+$onSurfaceVariant: {{colors.on_surface_variant.default.hex}};
+$outline: {{colors.outline.default.hex}};
+$outlineVariant: {{colors.outline_variant.default.hex}};
+$primary: {{colors.primary.default.hex}};
+$onPrimary: {{colors.on_primary.default.hex}};
+$primaryContainer: {{colors.primary_container.default.hex}};
+$onPrimaryContainer: {{colors.on_primary_container.default.hex}};
+$secondary: {{colors.secondary.default.hex}};
+$onSecondary: {{colors.on_secondary.default.hex}};
+$secondaryContainer: {{colors.secondary_container.default.hex}};
+$onSecondaryContainer: {{colors.on_secondary_container.default.hex}};
+$tertiary: {{colors.tertiary.default.hex}};
+$onTertiary: {{colors.on_tertiary.default.hex}};
+$tertiaryContainer: {{colors.tertiary_container.default.hex}};
+$onTertiaryContainer: {{colors.on_tertiary_container.default.hex}};
+$error: {{colors.error.default.hex}};
+$onError: {{colors.on_error.default.hex}};
+$errorContainer: {{colors.error_container.default.hex}};
+$onErrorContainer: {{colors.on_error_container.default.hex}};
+$term0: {{colors.surface.default.hex}};
+$term1: #f87171;
+$term2: #4ade80;
+$term3: #fbbf24;
+$term4: #60a5fa;
+$term5: #a78bfa;
+$term6: #2dd4bf;
+$term7: {{colors.on_surface.default.hex}};
+$term8: {{colors.outline.default.hex}};
+$term9: #fca5a5;
+$term10: #86efac;
+$term11: #fde68a;
+$term12: #93c5fd;
+$term13: #c4b5fd;
+$term14: #5eead4;
+$term15: {{colors.on_background.default.hex}};

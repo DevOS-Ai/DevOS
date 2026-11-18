@@ -3,7 +3,7 @@
 
 pkgname=devos-installer
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc='DevOS installer (UEFI, GRUB, optional LUKS2)'
 arch=('any')
 url='https://github.com/DevOS'

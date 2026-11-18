@@ -1,15 +1,13 @@
 #!/bin/sh
-# DevOS graphical session, started by greetd (SRS DESK-010).
-# In virtual machines, Hyprland's atomic KMS commits can stall on virtual GPUs
-# ("Cannot commit when a page-flip is awaiting") and freeze the screen after the
-# first frame; legacy modesetting avoids it. Real hardware keeps atomic KMS.
-if systemd-detect-virt --vm --quiet; then
-    export AQ_NO_ATOMIC=1
+# DevOS graphical session, started by the DevOS greeter through greetd (SRS DESK-010).
+# Hyprland runs under UWSM, the session manager the Hyprland project recommends:
+# systemd user units for the compositor and autostart, the environment exported to
+# systemd and D-Bus, and a clean, ordered logout.
+. /usr/lib/devos/gpu-env
+
+# Output goes to the journal (journalctl -t devos-session), not over the console
+# while the desktop starts.
+if command -v uwsm >/dev/null; then
+    exec systemd-cat -t devos-session uwsm start -- hyprland.desktop
 fi
-# VirtualBox and VMware expose an SVGA GPU on which Qt cannot create EGL surfaces,
-# so Quickshell (the end-4 bar and DevOS shell) exits at start; with 3D off in the
-# VM, Hyprland itself also crashes. Mesa's software renderer works in both cases.
-case "$(systemd-detect-virt)" in
-    oracle|vmware) export LIBGL_ALWAYS_SOFTWARE=1 ;;
-esac
-exec Hyprland
+exec systemd-cat -t devos-session Hyprland

@@ -185,11 +185,15 @@ configure_system() {
     sed 's/ (Live)//' /etc/os-release >"$TARGET/etc/os-release"
     printf '127.0.0.1 localhost\n::1 localhost\n127.0.1.1 %s.localdomain %s\n' "$HOSTNAME_" "$HOSTNAME_" >"$TARGET/etc/hosts"
 
+    # BOOT-010: Plymouth (the DevOS splash) right after systemd, so it also asks for
+    # the disk password of encrypted installs.
+    local splash=""
+    configure_plymouth "$TARGET" && splash="plymouth "
     if [[ "$ENCRYPT" == yes ]]; then
-        sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)/' \
+        sed -i "s/^HOOKS=.*/HOOKS=(base systemd ${splash}autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)/" \
             "$TARGET/etc/mkinitcpio.conf"
     else
-        sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block filesystems fsck)/' \
+        sed -i "s/^HOOKS=.*/HOOKS=(base systemd ${splash}autodetect microcode modconf kms keyboard sd-vconsole block filesystems fsck)/" \
             "$TARGET/etc/mkinitcpio.conf"
     fi
     chroot_run mkinitcpio -P
@@ -206,7 +210,7 @@ configure_system() {
 
     chroot_run systemctl enable NetworkManager.service systemd-timesyncd.service fstrim.timer
     if [[ -f "$TARGET/usr/share/devos/greetd/config.toml" ]]; then
-        # DESK-010: greetd + tuigreet, keyring unlocked at login.
+        # DESK-010: greetd + the DevOS login screen, keyring unlocked at login.
         install -m 0644 "$TARGET/usr/share/devos/greetd/config.toml" "$TARGET/etc/greetd/config.toml"
         install -m 0644 "$TARGET/usr/share/devos/greetd/pam-greetd" "$TARGET/etc/pam.d/greetd"
         chroot_run systemctl enable greetd.service
@@ -246,6 +250,15 @@ install_pacman_conf() {
     fi
 }
 
+# Select the DevOS Plymouth theme (BOOT-010). Returns non-zero when the theme is not
+# installed, so callers leave the plymouth hook out.
+configure_plymouth() {
+    local root="$1"
+    [[ -f "$root/usr/share/plymouth/themes/devos/devos.plymouth" ]] || return 1
+    install -d "$root/etc/plymouth"
+    printf '[Daemon]\nTheme=devos\nShowDelay=0\nDeviceTimeout=8\n' >"$root/etc/plymouth/plymouthd.conf"
+}
+
 # Merge DevOS GRUB settings into /etc/default/grub (BOOT-010).
 apply_grub_defaults() {
     local root="$1" file="$1/etc/default/grub" key line
@@ -275,6 +288,11 @@ post_install() {
     log "Applying the DevOS layer to $TARGET"
     install_pacman_conf
     chroot_run pacman -Sy --needed --noconfirm "${DEVOS_PACKAGES[@]}"
+    if configure_plymouth "$TARGET" && ! grep -qE '^HOOKS=.*\bplymouth\b' "$TARGET/etc/mkinitcpio.conf"; then
+        # After systemd (or udev on busybox initramfs), as the Arch wiki places it.
+        sed -i -E '/^HOOKS=/{s/\b(systemd|udev)\b/\1 plymouth/}' "$TARGET/etc/mkinitcpio.conf"
+        chroot_run mkinitcpio -P
+    fi
     if [[ -d "$TARGET/boot/grub" ]]; then
         apply_grub_defaults "$TARGET"
         chroot_run grub-mkconfig -o /boot/grub/grub.cfg

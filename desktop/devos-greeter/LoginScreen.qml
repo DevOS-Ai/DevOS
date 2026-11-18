@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Greetd
@@ -10,6 +11,8 @@ import Quickshell.Services.Greetd
 Item {
     id: root
 
+    // Secondary monitors show only the background and clock.
+    property bool showLogin: true
     readonly property string lastUserFile: "/var/cache/devos-greeter/last-user"
     property string userName: ""
     property string message: ""
@@ -41,6 +44,8 @@ Item {
 
     Connections {
         target: Greetd
+        // Greetd is global; only the login card's screen talks to it.
+        enabled: root.showLogin
         function onAuthMessage(text, error, responseRequired, echoResponse) {
             if (error) { showError(text); return; }
             if (responseRequired) {
@@ -65,9 +70,20 @@ Item {
             lastUser.setText(userField.text.trim());
             root.message = "Starting DevOS…";
             root.messageIsError = false;
-            Greetd.launch(["devos-session"], [], true);
+            leave.start();
         }
     }
+
+    // Fade to black, then hand over to the session (greetd starts it once the
+    // greeter has quit).
+    SequentialAnimation {
+        id: leave
+        NumberAnimation { target: root; property: "opacity"; to: 0; duration: 350; easing.type: Easing.InCubic }
+        ScriptAction { script: Greetd.launch(["devos-session"], [], true) }
+    }
+    opacity: 0
+    Component.onCompleted: opacity = 1
+    Behavior on opacity { enabled: !leave.running; NumberAnimation { duration: 450; easing.type: Easing.OutCubic } }
 
     // ------------------------------------------------- user name, host name
     FileView {
@@ -131,6 +147,7 @@ Item {
     // Login card
     Rectangle {
         id: card
+        visible: root.showLogin
         anchors.centerIn: parent
         anchors.verticalCenterOffset: parent.height * 0.08
         width: 400
@@ -165,12 +182,31 @@ Item {
                     GradientStop { position: 1; color: Theme.violet }
                 }
                 Rectangle {
+                    id: avatarDisc
                     anchors.fill: parent
                     anchors.margins: 3
                     radius: width / 2
                     color: "#0e1521"
+                    // The user's picture (Settings > Users, via AccountsService), round-clipped.
+                    Image {
+                        id: avatar
+                        anchors.fill: parent
+                        visible: false
+                        fillMode: Image.PreserveAspectCrop
+                        sourceSize: Qt.size(160, 160)
+                        source: userField.text.trim() !== ""
+                                ? "file:///var/lib/AccountsService/icons/" + userField.text.trim() : ""
+                    }
+                    Rectangle { id: avatarMask; anchors.fill: parent; radius: width / 2; visible: false }
+                    OpacityMask {
+                        anchors.fill: parent
+                        visible: avatar.status === Image.Ready
+                        source: avatar
+                        maskSource: avatarMask
+                    }
                     Text {
                         anchors.centerIn: parent
+                        visible: avatar.status !== Image.Ready
                         text: userField.text !== "" ? userField.text[0].toUpperCase() : "›_"
                         color: Theme.text
                         font.family: Theme.display
@@ -271,6 +307,7 @@ Item {
 
     // Brand, bottom-left
     RowLayout {
+        visible: root.showLogin
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.margins: 28
@@ -290,10 +327,13 @@ Item {
     // Power, bottom-right
     Process { id: power }
     RowLayout {
+        visible: root.showLogin
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: 24
         spacing: 8
+        DButton { label: "Suspend"; variant: "ghost"; small: true
+                  onClicked: { power.command = ["systemctl", "suspend"]; power.running = true; } }
         DButton { label: "Restart"; variant: "ghost"; small: true
                   onClicked: { power.command = ["systemctl", "reboot"]; power.running = true; } }
         DButton { label: "Power off"; variant: "ghost"; small: true

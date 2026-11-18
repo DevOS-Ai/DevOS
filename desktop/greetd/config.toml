@@ -1,4 +1,4 @@
-# DevOS login (SRS DESK-010, D-03): greetd with the DevOS graphical greeter
+# DevOS login (SRS DESK-010, D-03): greetd with the DevOS graphical greeter on Hyprland
 # (falls back to tuigreet), launching the DevOS session (Hyprland).
 [terminal]
 vt = 1
