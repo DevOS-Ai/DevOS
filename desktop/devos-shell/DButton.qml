@@ -1,34 +1,55 @@
 import QtQuick
+import QtQuick.Layouts
 
-// Button with a visible keyboard focus ring. Activates on click, or on
-// Enter/Space only while it has focus (SRS UX-001).
+// Material 3 button in the end-4 style: pill shape, state layers on hover and press,
+// optional leading icon. Activates on click, or on Enter/Space while focused (SRS UX-001).
+//   variant: primary (filled) | secondary (tonal) | ghost (text) | danger (error tonal)
 Rectangle {
     id: b
     property string label: ""
-    property string variant: "secondary"   // primary | secondary | danger | ghost
+    property string icon: ""
+    property string variant: "secondary"
     property bool small: false
     signal clicked()
 
-    activeFocusOnTab: true
-    implicitHeight: small ? 28 : 36
-    implicitWidth: txt.implicitWidth + (small ? 20 : 28)
-    radius: small ? 8 : 10
-    color: variant === "primary" ? (mouse.containsMouse ? "#3ee0cb" : Theme.teal)
-         : variant === "danger" ? (mouse.containsMouse ? Qt.rgba(0.97, 0.44, 0.44, 0.22) : Qt.rgba(0.97, 0.44, 0.44, 0.12))
-         : variant === "ghost" ? (mouse.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent")
-         : (mouse.containsMouse ? Theme.surfaceHigh : Theme.surface)
-    border.width: activeFocus ? 2 : 1
-    border.color: activeFocus ? Theme.text
-                : variant === "danger" ? Qt.rgba(0.97, 0.44, 0.44, 0.4)
-                : variant === "primary" ? "transparent" : Theme.border
+    readonly property color base: variant === "primary" ? Theme.m3primary
+        : variant === "danger" ? Theme.m3errorContainer
+        : variant === "ghost" ? Theme.alpha(Theme.m3surfaceContainerHigh, 0)
+        : Theme.m3secondaryContainer
+    readonly property color onBase: variant === "primary" ? Theme.m3onPrimary
+        : variant === "danger" ? Theme.m3onErrorContainer
+        : variant === "ghost" ? Theme.m3primary
+        : Theme.m3onSecondaryContainer
 
-    Text {
-        id: txt
+    activeFocusOnTab: true
+    implicitHeight: small ? 30 : 38
+    implicitWidth: row.implicitWidth + (small ? 22 : 30)
+    radius: Theme.radiusFull
+    color: mouse.pressed ? Theme.pressed(base, onBase) : mouse.containsMouse ? Theme.hover(base, onBase) : base
+    border.width: activeFocus ? 2 : 0
+    border.color: Theme.m3onSurface
+    scale: mouse.pressed ? 0.97 : 1
+    Behavior on color { ColorAnimation { duration: Theme.durationFast } }
+    Behavior on scale { NumberAnimation { duration: Theme.durationFast; easing.type: Easing.OutBack } }
+
+    RowLayout {
+        id: row
         anchors.centerIn: parent
-        text: b.label
-        color: b.variant === "primary" ? "#06231f" : b.variant === "danger" ? Theme.danger : Theme.text
-        font.pixelSize: b.small ? 12 : 13
-        font.weight: Font.DemiBold
+        spacing: 6
+        MIcon {
+            visible: b.icon !== ""
+            name: b.icon
+            size: b.small ? 16 : 18
+            color: b.onBase
+        }
+        Text {
+            visible: b.label !== ""
+            text: b.label
+            color: b.onBase
+            font.family: Theme.body
+            font.pixelSize: b.small ? 12 : 13
+            font.weight: Font.Medium
+        }
     }
     MouseArea {
         id: mouse

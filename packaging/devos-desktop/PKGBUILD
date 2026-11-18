@@ -12,7 +12,7 @@ _end4_commit=2f0c8bf42b803f4d597572f2a014d4e78d7d9f26
 _shapes_commit=e31ec4cb4ebf6a46b267f5c42eabf6874916fa16   # end-4's git submodule at that commit
 pkgname=devos-desktop
 pkgver=0.1.0
-pkgrel=12
+pkgrel=14
 pkgdesc='DevOS desktop: Hyprland + end-4 with the DevOS shell'
 arch=('any')
 url='https://github.com/DevOS'
@@ -84,6 +84,13 @@ prepare() {
         "input_path = '~/.config/matugen/templates/devos/material_colors.scss'" \
         "output_path = '~/.local/state/quickshell/user/generated/material_colors.scss'" \
         >>dots-hyprland/dots/.config/matugen/config.toml
+    # Lock screen colors and background from the wallpaper (hyprlock.conf sources them).
+    install -Dm644 "$_devos/overrides/matugen/lock-colors.conf" \
+        dots-hyprland/dots/.config/matugen/templates/devos/lock-colors.conf
+    printf '\n%s\n%s\n%s\n' '[templates.devos_lock_colors]' \
+        "input_path = '~/.config/matugen/templates/devos/lock-colors.conf'" \
+        "output_path = '~/.config/hypr/devos-lock-colors.conf'" \
+        >>dots-hyprland/dots/.config/matugen/config.toml
     for f in execs rules keybinds; do
         cat "$_devos/overrides/hypr/custom/$f.lua" >>"dots-hyprland/dots/.config/hypr/custom/$f.lua"
     done
@@ -98,7 +105,8 @@ package() {
     # DESK-021: DevOS lock screen (hyprlock in the login design) and idle settings
     # replace end-4's, which lock with its Quickshell lock instead of hyprlock.
     install -m644 -t "$pkgdir/etc/skel/.config/hypr" \
-        "$_devos/overrides/hypr/hyprlock.conf" "$_devos/overrides/hypr/hypridle.conf"
+        "$_devos/overrides/hypr/hyprlock.conf" "$_devos/overrides/hypr/hypridle.conf" \
+        "$_devos/overrides/hypr/devos-lock-colors.conf"
     install -Dm644 "$_devos/skel/zshrc" "$pkgdir/etc/skel/.zshrc"
     install -Dm644 dots-hyprland/LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE.end-4"
 
@@ -112,7 +120,7 @@ package() {
     # Graphical login: Hyprland config, greeter UI, plus the shared DevOS theme and button.
     install -d "$pkgdir/usr/share/devos/greeter"
     install -m644 -t "$pkgdir/usr/share/devos/greeter" "$_devos"/devos-greeter/* \
-        "$_devos/devos-shell/Theme.qml" "$_devos/devos-shell/DButton.qml"
+        "$_devos/devos-shell/Theme.qml" "$_devos/devos-shell/DButton.qml" "$_devos/devos-shell/MIcon.qml"
     install -Dm755 "$_devos/session/devos-greeter" "$pkgdir/usr/lib/devos/devos-greeter"
     install -Dm755 "$_devos/session/devos-greeter-ui" "$pkgdir/usr/lib/devos/devos-greeter-ui"
     install -Dm644 "$_devos/greetd/devos-greeter.tmpfiles" "$pkgdir/usr/lib/tmpfiles.d/devos-greeter.conf"

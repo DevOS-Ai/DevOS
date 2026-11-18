@@ -16,7 +16,7 @@ Item {
             spacing: 14
             Rectangle {
                 width: 52; height: 52; radius: 15
-                color: "#0e1521"
+                color: Theme.m3primaryContainer
                 border.width: 2
                 border.color: Theme.teal
                 Text { anchors.centerIn: parent; text: "›_"; color: Theme.teal
@@ -52,9 +52,9 @@ Item {
                     readonly property bool isSelected: isInstalled || !!win.selected[modelData.id]
                     Layout.fillWidth: true
                     implicitHeight: 58
-                    radius: 12
-                    color: isSelected ? Qt.rgba(0.18, 0.83, 0.75, 0.10) : Theme.surface
-                    border.color: isSelected ? Qt.rgba(0.18, 0.83, 0.75, 0.5) : Theme.border
+                    radius: Theme.radiusSmall
+                    color: isSelected ? Theme.m3secondaryContainer : Theme.surface
+                    border.color: isSelected ? Theme.m3primary : Theme.border
                     MouseArea {
                         anchors.fill: parent
                         enabled: !parent.isInstalled

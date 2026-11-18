@@ -43,8 +43,8 @@ Item {
             visible: root.adding
             Layout.fillWidth: true
             implicitHeight: form.implicitHeight + 24
-            radius: 12
-            color: Theme.surface
+            radius: Theme.radiusSmall
+            color: Theme.layer1
             border.color: Theme.border
 
             ColumnLayout {
@@ -57,7 +57,7 @@ Item {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: 34; radius: 9
+                    implicitHeight: 34; radius: Theme.radiusSmall
                     color: Theme.bg
                     border.color: nameIn.activeFocus ? Theme.teal : Theme.border
                     TextInput {
@@ -71,7 +71,7 @@ Item {
                 }
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: Math.max(promptIn.implicitHeight + 16, 70); radius: 9
+                    implicitHeight: Math.max(promptIn.implicitHeight + 16, 70); radius: Theme.radiusSmall
                     color: Theme.bg
                     border.color: promptIn.activeFocus ? Theme.teal : Theme.border
                     TextEdit {
@@ -92,8 +92,8 @@ Item {
                         model: root.presets
                         Rectangle {
                             required property var modelData
-                            width: chip.implicitWidth + 18; height: 26; radius: 13
-                            color: root.schedule === modelData.value ? Theme.surfaceHigh : "transparent"
+                            width: chip.implicitWidth + 18; height: 26; radius: Theme.radius
+                            color: root.schedule === modelData.value ? Theme.layer2 : "transparent"
                             border.color: root.schedule === modelData.value ? Theme.teal : Theme.border
                             Text { id: chip; anchors.centerIn: parent; text: parent.modelData.label
                                    color: Theme.muted; font.pixelSize: 11 }
@@ -107,7 +107,7 @@ Item {
                     spacing: 8
                     Rectangle {
                         Layout.fillWidth: true
-                        implicitHeight: 34; radius: 9
+                        implicitHeight: 34; radius: Theme.radiusSmall
                         color: Theme.bg
                         border.color: schedIn.activeFocus ? Theme.teal : Theme.border
                         TextInput {
@@ -167,8 +167,8 @@ Item {
                 required property string lastError
                 width: list.width
                 implicitHeight: col.implicitHeight + 20
-                radius: 10
-                color: Theme.surface
+                radius: Theme.radiusSmall
+                color: Theme.layer1
                 border.color: Theme.border
                 opacity: active ? 1 : 0.6
 

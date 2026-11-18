@@ -38,7 +38,7 @@ Item {
                 Rectangle {
                     required property var modelData
                     width: ttxt.implicitWidth + 20; height: 26; radius: 8
-                    color: root.tab === modelData.v ? Theme.surfaceHigh : "transparent"
+                    color: root.tab === modelData.v ? Theme.layer2 : "transparent"
                     border.color: root.tab === modelData.v ? Theme.teal : Theme.border
                     Text { id: ttxt; anchors.centerIn: parent; text: parent.modelData.l; color: Theme.text; font.pixelSize: 11 }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.show(parent.modelData.v) }
@@ -54,8 +54,8 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: 10
-            color: Theme.surface
+            radius: Theme.radiusSmall
+            color: Theme.layer1
             border.color: editor.activeFocus ? Theme.teal : Theme.border
             Flickable {
                 id: flick

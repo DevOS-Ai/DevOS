@@ -52,9 +52,9 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        radius: 18
+        radius: Theme.radiusLarge
         color: Theme.bg
-        border.color: Theme.border
+        border.color: Theme.alpha(Theme.m3outlineVariant, 0.6)
 
         FocusScope {
             anchors.fill: parent
@@ -75,46 +75,61 @@ PanelWindow {
                     Layout.fillWidth: true
                     spacing: 10
                     Rectangle {
-                        width: 30; height: 30; radius: 9
-                        color: "#0e1521"
-                        border.width: 1.5
-                        border.color: Theme.teal
+                        width: 40; height: 40; radius: Theme.radiusSmall
+                        color: Theme.m3primaryContainer
                         Text {
                             anchors.centerIn: parent
                             text: "›_"
-                            color: Theme.teal
+                            color: Theme.m3onPrimaryContainer
                             font.family: Theme.mono
-                            font.pixelSize: 13
+                            font.pixelSize: 15
                             font.weight: Font.Bold
                         }
                     }
                     ColumnLayout {
-                        spacing: 0
+                        spacing: 3
                         Text {
                             text: "DevOS Agent"
                             color: Theme.text
                             font.family: Theme.display
-                            font.pixelSize: 17
-                            font.weight: Font.Bold
+                            font.pixelSize: 19
+                            font.weight: Font.Medium
                         }
-                        Text {
-                            text: (win.client.providerName(win.client.activeProvider) || "No model")
-                                  + (win.client.activeModel ? " · " + win.client.activeModel : "")
-                                  + (win.client.effort ? " · " + win.client.effort : "") + "  ▾"
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        // Model chip: opens the model picker.
+                        Rectangle {
+                            implicitHeight: 24
+                            implicitWidth: chipRow.implicitWidth + 16
+                            radius: Theme.radiusFull
+                            color: chipMouse.containsMouse || win.pickerOpen ? Theme.layer3 : Theme.layer2
+                            Behavior on color { ColorAnimation { duration: Theme.durationFast } }
+                            RowLayout {
+                                id: chipRow
+                                anchors.centerIn: parent
+                                spacing: 4
+                                MIcon { name: "neurology"; size: 14; color: Theme.m3primary }
+                                Text {
+                                    text: (win.client.providerName(win.client.activeProvider) || "No model")
+                                          + (win.client.activeModel ? " · " + win.client.activeModel : "")
+                                          + (win.client.effort ? " · " + win.client.effort : "")
+                                    color: Theme.muted
+                                    font.family: Theme.body
+                                    font.pixelSize: 11
+                                    elide: Text.ElideRight
+                                    Layout.maximumWidth: 260
+                                }
+                                MIcon { name: win.pickerOpen ? "expand_less" : "expand_more"; size: 14; color: Theme.muted }
+                            }
+                            MouseArea { id: chipMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                         onClicked: { win.pickerOpen = !win.pickerOpen; if (win.pickerOpen) win.client.loadProviders(); } }
-                            color: Theme.faint
-                            font.pixelSize: 11
                         }
                     }
                     Item { Layout.fillWidth: true }
                     // Status (SRS §20.3) and the external-provider indicator (PRIV-012)
                     Rectangle {
-                        implicitHeight: 24
-                        implicitWidth: statusRow.implicitWidth + 16
-                        radius: 12
-                        color: Theme.surface
-                        border.color: Theme.border
+                        implicitHeight: 26
+                        implicitWidth: statusRow.implicitWidth + 18
+                        radius: Theme.radiusFull
+                        color: win.client.status === "waiting" ? Theme.m3tertiaryContainer : Theme.layer2
                         RowLayout {
                             id: statusRow
                             anchors.centerIn: parent
@@ -133,14 +148,15 @@ PanelWindow {
                             Text {
                                 text: ({ off: "off", idle: "ready", thinking: "working", running: "running a tool",
                                          waiting: "needs approval", error: "error" })[win.client.status]
-                                color: Theme.muted
+                                color: win.client.status === "waiting" ? Theme.m3onTertiaryContainer : Theme.muted
+                                font.family: Theme.body
                                 font.pixelSize: 11
                             }
                         }
                     }
-                    DButton { label: "New"; variant: "ghost"; small: true
+                    DButton { icon: "edit_square"; variant: "ghost"; small: true
                               onClicked: { win.client.newConversation(); win.go("chat"); } }
-                    DButton { label: "✕"; variant: "ghost"; small: true; onClicked: win.open = false }
+                    DButton { icon: "close"; variant: "ghost"; small: true; onClicked: win.open = false }
                 }
 
                 // ---------------------------------------------------- navigation
@@ -148,18 +164,29 @@ PanelWindow {
                     Layout.fillWidth: true
                     spacing: 4
                     Repeater {
-                        model: [{ v: "chat", l: "Chat" }, { v: "history", l: "History" }, { v: "jobs", l: "Schedules" },
-                                { v: "skills", l: "Skills" }, { v: "memory", l: "Memory" }, { v: "settings", l: "Settings" }]
+                        model: [{ v: "chat", l: "Chat", i: "forum" }, { v: "history", l: "History", i: "history" },
+                                { v: "jobs", l: "Schedules", i: "event_repeat" }, { v: "skills", l: "Skills", i: "school" },
+                                { v: "memory", l: "Memory", i: "psychology" }, { v: "settings", l: "Settings", i: "tune" }]
                         Rectangle {
+                            id: tab
                             required property var modelData
-                            width: navTxt.implicitWidth + 20; height: 28; radius: 8
-                            color: win.view === modelData.v ? Theme.surfaceHigh : navHov.containsMouse ? Theme.surface : "transparent"
-                            border.color: win.view === modelData.v ? Theme.teal : "transparent"
-                            Text { id: navTxt; anchors.centerIn: parent; text: parent.modelData.l
-                                   color: win.view === parent.modelData.v ? Theme.text : Theme.muted
-                                   font.pixelSize: 12; font.weight: Font.DemiBold }
+                            readonly property bool selected: win.view === modelData.v
+                            width: tabRow.implicitWidth + 22; height: 32; radius: Theme.radiusFull
+                            color: selected ? Theme.m3secondaryContainer
+                                 : navHov.containsMouse ? Theme.hover(Theme.layer0, Theme.m3onSurface) : "transparent"
+                            Behavior on color { ColorAnimation { duration: Theme.durationFast } }
+                            RowLayout {
+                                id: tabRow
+                                anchors.centerIn: parent
+                                spacing: 5
+                                MIcon { name: tab.modelData.i; size: 17; fill: tab.selected ? 1 : 0
+                                        color: tab.selected ? Theme.m3onSecondaryContainer : Theme.muted }
+                                Text { text: tab.modelData.l; font.family: Theme.body; font.pixelSize: 12
+                                       font.weight: tab.selected ? Font.DemiBold : Font.Medium
+                                       color: tab.selected ? Theme.m3onSecondaryContainer : Theme.muted }
+                            }
                             MouseArea { id: navHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                        onClicked: win.go(parent.modelData.v) }
+                                        onClicked: win.go(tab.modelData.v) }
                         }
                     }
                 }
@@ -205,8 +232,8 @@ PanelWindow {
                             required property string workspace
                             width: history.width
                             height: 52
-                            radius: 10
-                            color: hov.containsMouse ? Theme.surfaceHigh : Theme.surface
+                            radius: Theme.radiusSmall
+                            color: hov.containsMouse ? Theme.layer2 : Theme.surface
                             MouseArea {
                                 id: hov
                                 anchors.fill: parent
@@ -292,10 +319,11 @@ PanelWindow {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        implicitHeight: Math.min(Math.max(input.implicitHeight + 24, 48), 160)
-                        radius: 14
-                        color: Theme.surface
-                        border.color: input.activeFocus ? Theme.teal : Theme.border
+                        implicitHeight: Math.min(Math.max(input.implicitHeight + 26, 52), 170)
+                        radius: Theme.radiusLarge
+                        color: Theme.layer2
+                        border.width: input.activeFocus ? 2 : 0
+                        border.color: Theme.m3primary
                         Flickable {
                             id: inputFlick
                             anchors.left: parent.left
@@ -310,11 +338,12 @@ PanelWindow {
                                 width: inputFlick.width
                                 wrapMode: TextEdit.Wrap
                                 color: Theme.text
+                                font.family: Theme.body
                                 font.pixelSize: 14
                                 focus: true
                                 Text { visible: input.text === "" && !input.preeditText
                                        text: "Ask DevOS Agent or give it a task…"
-                                       color: Theme.faint; font.pixelSize: 14 }
+                                       color: Theme.faint; font.family: Theme.body; font.pixelSize: 14 }
                                 // Enter sends, Shift+Enter inserts a newline.
                                 Keys.onReturnPressed: event => {
                                     if (event.modifiers & Qt.ShiftModifier) { event.accepted = false; return; }
@@ -327,9 +356,9 @@ PanelWindow {
                             anchors.right: parent.right
                             anchors.bottom: parent.bottom
                             anchors.margins: 8
-                            small: true
-                            label: win.client.runningTask !== "" ? "Stop" : "Send"
+                            icon: win.client.runningTask !== "" ? "stop" : "arrow_upward"
                             variant: win.client.runningTask !== "" ? "danger" : "primary"
+                            implicitWidth: 38
                             onClicked: {
                                 if (win.client.runningTask !== "") { win.client.cancel(); return; }
                                 win.client.send(input.text);
@@ -352,8 +381,8 @@ PanelWindow {
             anchors.leftMargin: 16
             width: parent.width - 32
             height: Math.min(pickCol.implicitHeight + 24, parent.height - 90)
-            radius: 14
-            color: Theme.surface
+            radius: Theme.radius
+            color: Theme.layer1
             border.color: Theme.teal
 
             Flickable {
@@ -369,7 +398,7 @@ PanelWindow {
                     Text { text: "Model for this conversation"; color: Theme.text; font.pixelSize: 13; font.weight: Font.DemiBold }
                     Rectangle {
                         Layout.fillWidth: true; implicitHeight: 30; radius: 8
-                        color: win.client.runProvider === "" ? Theme.surfaceHigh : "transparent"
+                        color: win.client.runProvider === "" ? Theme.layer2 : "transparent"
                         border.color: win.client.runProvider === "" ? Theme.teal : Theme.border
                         Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10
                                text: "Default · " + win.client.providerName(win.client.provider) + " · " + win.client.model
@@ -404,8 +433,8 @@ PanelWindow {
                                     Rectangle {
                                         required property string modelData
                                         readonly property bool chosen: win.client.runProvider === prov.slug && win.client.runModel === modelData
-                                        width: mt.implicitWidth + 16; height: 24; radius: 12
-                                        color: chosen ? Theme.surfaceHigh : "transparent"
+                                        width: mt.implicitWidth + 16; height: 24; radius: Theme.radiusSmall
+                                        color: chosen ? Theme.layer2 : "transparent"
                                         border.color: chosen ? Theme.teal : Theme.border
                                         Text { id: mt; anchors.centerIn: parent; text: parent.modelData
                                                color: Theme.text; font.family: Theme.mono; font.pixelSize: 10 }
@@ -426,8 +455,8 @@ PanelWindow {
                                     { v: "medium", l: "Medium" }, { v: "high", l: "High" }]
                             Rectangle {
                                 required property var modelData
-                                width: et.implicitWidth + 18; height: 24; radius: 12
-                                color: win.client.effort === modelData.v ? Theme.surfaceHigh : "transparent"
+                                width: et.implicitWidth + 18; height: 24; radius: Theme.radiusSmall
+                                color: win.client.effort === modelData.v ? Theme.layer2 : "transparent"
                                 border.color: win.client.effort === modelData.v ? Theme.violet : Theme.border
                                 Text { id: et; anchors.centerIn: parent; text: parent.modelData.l; color: Theme.text; font.pixelSize: 11 }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor

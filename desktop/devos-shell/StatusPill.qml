@@ -24,7 +24,7 @@ PanelWindow {
     Rectangle {
         anchors.fill: parent
         radius: 16
-        color: pill.client.status === "waiting" ? Qt.rgba(0.98, 0.75, 0.14, 0.95) : Theme.bg
+        color: pill.client.status === "waiting" ? Theme.m3tertiaryContainer : Theme.layer2
         border.color: pill.client.status === "waiting" ? "transparent" : Theme.border
         RowLayout {
             id: row
@@ -32,7 +32,7 @@ PanelWindow {
             spacing: 8
             Rectangle {
                 width: 8; height: 8; radius: 4
-                color: pill.client.status === "waiting" ? "#3a2a00"
+                color: pill.client.status === "waiting" ? Theme.m3onTertiaryContainer
                      : pill.client.status === "thinking" ? Theme.violet : Theme.teal
                 SequentialAnimation on opacity {
                     running: pill.visible
@@ -44,7 +44,7 @@ PanelWindow {
             Text {
                 text: pill.client.status === "waiting" ? "DevOS Agent needs your approval"
                     : pill.client.status === "thinking" ? "DevOS Agent · working" : "DevOS Agent · running a tool"
-                color: pill.client.status === "waiting" ? "#3a2a00" : Theme.text
+                color: pill.client.status === "waiting" ? Theme.m3onTertiaryContainer : Theme.text
                 font.pixelSize: 12
                 font.weight: Font.DemiBold
             }

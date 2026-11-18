@@ -153,8 +153,8 @@ Item {
         width: 400
         height: cardCol.implicitHeight + 56
         radius: 24
-        color: Qt.rgba(0.043, 0.067, 0.106, 0.72)
-        border.color: Qt.rgba(1, 1, 1, 0.09)
+        color: Theme.alpha(Theme.layer0, 0.78)
+        border.color: Theme.alpha(Theme.m3outlineVariant, 0.6)
 
         SequentialAnimation {
             id: shake
@@ -186,7 +186,7 @@ Item {
                     anchors.fill: parent
                     anchors.margins: 3
                     radius: width / 2
-                    color: "#0e1521"
+                    color: Theme.m3primaryContainer
                     // The user's picture (Settings > Users, via AccountsService), round-clipped.
                     Image {
                         id: avatar
@@ -221,8 +221,8 @@ Item {
                 Layout.fillWidth: true
                 implicitHeight: 46
                 radius: 12
-                color: Qt.rgba(1, 1, 1, 0.05)
-                border.color: userField.activeFocus ? Theme.teal : Qt.rgba(1, 1, 1, 0.10)
+                color: Theme.alpha(Theme.layer2, 0.8)
+                border.color: userField.activeFocus ? Theme.teal : Theme.alpha(Theme.m3outlineVariant, 0.8)
                 TextInput {
                     id: userField
                     anchors.fill: parent
@@ -252,9 +252,9 @@ Item {
                 Layout.fillWidth: true
                 implicitHeight: 46
                 radius: 12
-                color: Qt.rgba(1, 1, 1, 0.05)
+                color: Theme.alpha(Theme.layer2, 0.8)
                 border.color: root.messageIsError && root.message !== "" ? Theme.danger
-                            : passwordField.activeFocus ? Theme.teal : Qt.rgba(1, 1, 1, 0.10)
+                            : passwordField.activeFocus ? Theme.teal : Theme.alpha(Theme.m3outlineVariant, 0.8)
                 TextInput {
                     id: passwordField
                     anchors.fill: parent
@@ -284,9 +284,9 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.rightMargin: 6
                     width: 34; height: 34; radius: 10
-                    color: arrow.containsMouse ? "#3ee0cb" : Theme.teal
+                    color: arrow.containsMouse ? Theme.hover(Theme.m3primary, Theme.m3onPrimary) : Theme.m3primary
                     opacity: root.busy ? 0.5 : 1
-                    Text { anchors.centerIn: parent; text: root.busy ? "…" : "→"; color: "#06231f"
+                    Text { anchors.centerIn: parent; text: root.busy ? "…" : "→"; color: Theme.m3onPrimary
                            font.pixelSize: 18; font.weight: Font.Bold }
                     MouseArea { id: arrow; anchors.fill: parent; hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor; onClicked: root.login() }
@@ -314,7 +314,7 @@ Item {
         spacing: 10
         Rectangle {
             width: 30; height: 30; radius: 9
-            color: "#0e1521"
+            color: Theme.m3primaryContainer
             border.width: 1.5
             border.color: Theme.teal
             Text { anchors.centerIn: parent; text: "›_"; color: Theme.teal

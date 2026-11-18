@@ -53,8 +53,8 @@ ColumnLayout {
             model: ["gemini", "openrouter", "openai", "local"]
             Rectangle {
                 required property string modelData
-                width: lbl.implicitWidth + 22; height: 30; radius: 9
-                color: root.choice === modelData ? Theme.surfaceHigh : Theme.surface
+                width: lbl.implicitWidth + 22; height: 30; radius: Theme.radiusSmall
+                color: root.choice === modelData ? Theme.layer2 : Theme.surface
                 border.color: root.choice === modelData ? Theme.teal : Theme.border
                 Text { id: lbl; anchors.centerIn: parent; text: root.providers[parent.modelData].name
                        color: root.choice === parent.modelData ? Theme.text : Theme.muted
@@ -68,9 +68,9 @@ ColumnLayout {
     Rectangle {
         Layout.fillWidth: true
         implicitHeight: notice.implicitHeight + 24
-        radius: 10
-        color: Qt.rgba(0.98, 0.75, 0.14, 0.08)
-        border.color: Qt.rgba(0.98, 0.75, 0.14, 0.3)
+        radius: Theme.radiusSmall
+        color: Theme.alpha(Theme.m3primary, 0.08)
+        border.color: Theme.alpha(Theme.m3primary, 0.30)
         Text {
             id: notice
             anchors.fill: parent
@@ -91,8 +91,8 @@ ColumnLayout {
     Rectangle {
         Layout.fillWidth: true
         implicitHeight: 40
-        radius: 10
-        color: Theme.surface
+        radius: Theme.radiusSmall
+        color: Theme.layer1
         border.color: keyInput.activeFocus ? Theme.teal : Theme.border
         TextInput {
             id: keyInput
@@ -118,8 +118,8 @@ ColumnLayout {
     Rectangle {
         Layout.fillWidth: true
         implicitHeight: 36
-        radius: 10
-        color: Theme.surface
+        radius: Theme.radiusSmall
+        color: Theme.layer1
         border.color: modelInput.activeFocus ? Theme.teal : Theme.border
         TextInput {
             id: modelInput
@@ -169,8 +169,9 @@ ColumnLayout {
         }
     }
     DButton {
-        label: "More providers: Anthropic, DeepSeek, xAI, Mistral, Hugging Face, NVIDIA… (" + Math.max(root.client.providers.count, 50) + ")"
-        variant: "ghost"; small: true
+        label: Math.max(root.client.providers.count, 50) + " more providers: Anthropic, DeepSeek, xAI, Mistral, NVIDIA…"
+        icon: "add_circle"
+        variant: "secondary"; small: true
         onClicked: root.moreProviders()
     }
     Text {

@@ -28,8 +28,8 @@ Item {
         }
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: 34; radius: 9
-            color: Theme.surface
+            implicitHeight: 34; radius: Theme.radiusSmall
+            color: Theme.layer1
             border.color: search.activeFocus ? Theme.teal : Theme.border
             TextInput {
                 id: search
@@ -67,8 +67,8 @@ Item {
                 visible: match
                 width: list.width
                 height: match ? skRow.implicitHeight + 16 : 0
-                radius: 9
-                color: hov.containsMouse ? Theme.surfaceHigh : Theme.surface
+                radius: Theme.radiusSmall
+                color: hov.containsMouse ? Theme.layer2 : Theme.surface
                 border.color: Theme.border
                 MouseArea { id: hov; anchors.fill: parent; hoverEnabled: true }
                 RowLayout {

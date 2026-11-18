@@ -35,8 +35,8 @@ Flickable {
         }
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: 34; radius: 9
-            color: Theme.surface
+            implicitHeight: 34; radius: Theme.radiusSmall
+            color: Theme.layer1
             border.color: search.activeFocus ? Theme.teal : Theme.border
             TextInput {
                 id: search
@@ -69,9 +69,9 @@ Flickable {
                 visible: root.filter === "" || name.toLowerCase().includes(root.filter) || slug.includes(root.filter)
                 Layout.fillWidth: true
                 implicitHeight: visible ? cardCol.implicitHeight + 20 : 0
-                radius: 10
-                color: expanded ? Theme.surfaceHigh : Theme.surface
-                border.color: current ? Theme.teal : connected ? Qt.rgba(0.29, 0.87, 0.5, 0.35) : Theme.border
+                radius: Theme.radiusSmall
+                color: expanded ? Theme.layer2 : Theme.surface
+                border.color: current ? Theme.teal : connected ? Theme.alpha(Theme.success, 0.45) : Theme.border
 
                 ColumnLayout {
                     id: cardCol
@@ -123,7 +123,7 @@ Flickable {
 
                         Rectangle {
                             visible: !root.oauth(card.authType)
-                            Layout.fillWidth: true; implicitHeight: 34; radius: 9
+                            Layout.fillWidth: true; implicitHeight: 34; radius: Theme.radiusSmall
                             color: Theme.bg; border.color: keyIn.activeFocus ? Theme.teal : Theme.border
                             TextInput {
                                 id: keyIn
@@ -139,7 +139,7 @@ Flickable {
                             }
                         }
                         Rectangle {
-                            Layout.fillWidth: true; implicitHeight: 34; radius: 9
+                            Layout.fillWidth: true; implicitHeight: 34; radius: Theme.radiusSmall
                             color: Theme.bg; border.color: modelIn.activeFocus ? Theme.teal : Theme.border
                             TextInput {
                                 id: modelIn
@@ -159,7 +159,7 @@ Flickable {
                                 model: card.modelList.slice(0, 12)
                                 Rectangle {
                                     required property string modelData
-                                    width: mtxt.implicitWidth + 14; height: 22; radius: 11
+                                    width: mtxt.implicitWidth + 14; height: 22; radius: Theme.radiusSmall
                                     color: modelIn.text === modelData ? Theme.surface : "transparent"
                                     border.color: modelIn.text === modelData ? Theme.teal : Theme.border
                                     Text { id: mtxt; anchors.centerIn: parent; text: parent.modelData
@@ -238,8 +238,8 @@ Flickable {
                 model: [{ v: "smart", l: "Smart" }, { v: "manual", l: "Always ask" }]
                 Rectangle {
                     required property var modelData
-                    width: atxt.implicitWidth + 24; height: 28; radius: 9
-                    color: root.client.approvalsMode === modelData.v ? Theme.surfaceHigh : Theme.surface
+                    width: atxt.implicitWidth + 24; height: 28; radius: Theme.radiusSmall
+                    color: root.client.approvalsMode === modelData.v ? Theme.layer2 : Theme.surface
                     border.color: root.client.approvalsMode === modelData.v ? Theme.teal : Theme.border
                     Text { id: atxt; anchors.centerIn: parent; text: parent.modelData.l; color: Theme.text; font.pixelSize: 12 }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -267,8 +267,8 @@ Flickable {
                     required property int count
                     Layout.fillWidth: true
                     implicitHeight: tcol.implicitHeight + 14
-                    radius: 9
-                    color: Theme.surface
+                    radius: Theme.radiusSmall
+                    color: Theme.layer1
                     border.color: Theme.border
                     opacity: active ? 1 : 0.5
                     ColumnLayout {

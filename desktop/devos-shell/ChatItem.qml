@@ -49,9 +49,9 @@ Item {
                 anchors.right: parent.right
                 width: Math.min(userText.implicitWidth + 28, parent.width * 0.85)
                 height: userText.implicitHeight + 20
-                radius: 14
-                color: Qt.rgba(0.18, 0.83, 0.75, 0.13)
-                border.color: Qt.rgba(0.18, 0.83, 0.75, 0.28)
+                radius: Theme.radius
+                color: Theme.m3primaryContainer
+                border.color: "transparent"
                 Text {
                     id: userText
                     anchors.fill: parent
@@ -60,7 +60,8 @@ Item {
                     anchors.rightMargin: 14
                     text: row.text
                     wrapMode: Text.Wrap
-                    color: Theme.text
+                    color: Theme.m3onPrimaryContainer
+                    font.family: Theme.body
                     font.pixelSize: 14
                 }
             }
@@ -74,8 +75,10 @@ Item {
             textFormat: Text.MarkdownText
             wrapMode: Text.Wrap
             color: Theme.text
+            linkColor: Theme.m3primary
+            font.family: Theme.body
             font.pixelSize: 14
-            lineHeight: 1.25
+            lineHeight: 1.3
             onLinkActivated: link => Qt.openUrlExternally(link)
         }
     }
@@ -84,14 +87,16 @@ Item {
         id: toolC
         RowLayout {
             spacing: 8
-            Text {
+            MIcon {
                 Layout.alignment: Qt.AlignTop
-                text: row.state === "running" ? "→" : row.state === "done" ? "✓"
-                    : row.state === "failed" ? "✗" : "⊘"
-                color: row.state === "done" ? Theme.success : row.state === "running" ? Theme.teal
-                     : Theme.danger
-                font.family: Theme.mono
-                font.pixelSize: 13
+                name: row.state === "running" ? "progress_activity" : row.state === "done" ? "check_circle"
+                    : row.state === "failed" ? "error" : "block"
+                size: 16
+                fill: row.state === "running" ? 0 : 1
+                color: row.state === "done" ? Theme.success : row.state === "running" ? Theme.m3primary : Theme.danger
+                RotationAnimation on rotation {
+                    running: row.state === "running"; loops: Animation.Infinite; from: 0; to: 360; duration: 1000
+                }
             }
             ColumnLayout {
                 Layout.fillWidth: true
@@ -122,9 +127,9 @@ Item {
         id: approvalC
         Rectangle {
             implicitHeight: col.implicitHeight + 28
-            radius: 14
-            color: row.resolved ? Theme.surface : Qt.rgba(0.98, 0.75, 0.14, 0.07)
-            border.color: row.resolved ? Theme.border : Qt.rgba(0.98, 0.75, 0.14, 0.45)
+            radius: Theme.radius
+            color: row.resolved ? Theme.surface : Theme.alpha(Theme.m3tertiary, 0.10)
+            border.color: row.resolved ? Theme.border : Theme.alpha(Theme.m3tertiary, 0.55)
             opacity: row.resolved ? 0.6 : 1
             ColumnLayout {
                 id: col
@@ -133,21 +138,25 @@ Item {
                 anchors.top: parent.top
                 anchors.margins: 14
                 spacing: 8
-                Text {
-                    text: row.resolved ? "Approval answered"
-                        : row.approvalKind === "continue" ? "Continue the task?" : "Approval needed · " + row.tool
-                    color: row.resolved ? Theme.muted : Theme.warning
-                    font.pixelSize: 12
-                    font.weight: Font.Bold
-                    font.capitalization: Font.AllUppercase
-                    font.letterSpacing: 0.8
+                RowLayout {
+                    spacing: 6
+                    MIcon { name: row.resolved ? "verified_user" : "gpp_maybe"; size: 18; fill: 1
+                            color: row.resolved ? Theme.muted : Theme.m3tertiary }
+                    Text {
+                        text: row.resolved ? "Approval answered"
+                            : row.approvalKind === "continue" ? "Continue the task?" : "Approval needed · " + row.tool
+                        color: row.resolved ? Theme.muted : Theme.m3tertiary
+                        font.family: Theme.body
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                    }
                 }
                 Rectangle {
                     visible: row.detail !== ""
                     Layout.fillWidth: true
                     implicitHeight: cmd.implicitHeight + 16
                     radius: 8
-                    color: "#070b12"
+                    color: Theme.m3surfaceContainerLowest
                     Text {
                         id: cmd
                         anchors.fill: parent
@@ -172,7 +181,7 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: Math.min(diffCol.implicitHeight + 16, 260)
                     radius: 8
-                    color: "#070b12"
+                    color: Theme.m3surfaceContainerLowest
                     clip: true
                     Flickable {
                         anchors.fill: parent
@@ -211,6 +220,7 @@ Item {
                     spacing: 8
                     DButton {
                         label: row.approvalKind === "continue" ? "Continue" : "Approve once"
+                        icon: "check"
                         variant: "primary"
                         small: true
                         onClicked: row.client.respond(row.approvalId, "once")
@@ -218,11 +228,13 @@ Item {
                     DButton {
                         visible: row.allowSession
                         label: "Approve for session"
+                        icon: "done_all"
                         small: true
                         onClicked: row.client.respond(row.approvalId, "session")
                     }
                     DButton {
                         label: row.approvalKind === "continue" ? "Stop" : "Deny"
+                        icon: "block"
                         variant: "danger"
                         small: true
                         onClicked: row.client.respond(row.approvalId, "deny")
@@ -236,8 +248,8 @@ Item {
         id: summaryC
         Rectangle {
             implicitHeight: sum.implicitHeight + 24
-            radius: 12
-            color: Theme.surface
+            radius: Theme.radiusSmall
+            color: Theme.layer1
             border.color: Theme.border
             ColumnLayout {
                 id: sum
@@ -287,9 +299,9 @@ Item {
         Rectangle {
             property bool expanded: false
             implicitHeight: thinkCol.implicitHeight + 16
-            radius: 10
-            color: Qt.rgba(0.55, 0.36, 0.96, 0.06)
-            border.color: Qt.rgba(0.55, 0.36, 0.96, 0.22)
+            radius: Theme.radiusSmall
+            color: Theme.alpha(Theme.m3tertiary, 0.07)
+            border.color: Theme.alpha(Theme.m3tertiary, 0.25)
             ColumnLayout {
                 id: thinkCol
                 anchors.left: parent.left
@@ -298,11 +310,12 @@ Item {
                 anchors.margins: 8
                 anchors.leftMargin: 12
                 spacing: 4
-                Text {
-                    text: (parent.parent.expanded ? "▾ " : "▸ ") + "Thinking"
-                    color: Theme.violet
-                    font.pixelSize: 12
-                    font.weight: Font.DemiBold
+                RowLayout {
+                    spacing: 5
+                    MIcon { name: "lightbulb"; size: 15; color: Theme.m3tertiary }
+                    Text { text: "Thinking"; color: Theme.m3tertiary; font.family: Theme.body; font.pixelSize: 12
+                           font.weight: Font.DemiBold }
+                    MIcon { name: thinkCol.parent.expanded ? "expand_less" : "expand_more"; size: 15; color: Theme.m3tertiary }
                 }
                 Text {
                     Layout.fillWidth: true
@@ -325,8 +338,8 @@ Item {
         id: subagentC
         Rectangle {
             implicitHeight: subCol.implicitHeight + 16
-            radius: 10
-            color: Theme.surface
+            radius: Theme.radiusSmall
+            color: Theme.layer1
             border.color: row.state === "running" ? Theme.teal : Theme.border
             ColumnLayout {
                 id: subCol
@@ -339,14 +352,11 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
-                    Text {
-                        text: row.state === "running" ? "⟳" : row.state === "done" ? "✓" : "✗"
-                        color: row.state === "done" ? Theme.success : row.state === "running" ? Theme.teal : Theme.danger
-                        font.pixelSize: 13
-                        RotationAnimation on rotation {
-                            running: row.state === "running"; loops: Animation.Infinite
-                            from: 0; to: 360; duration: 1400
-                        }
+                    MIcon {
+                        name: "account_tree"
+                        size: 16
+                        fill: row.state === "done" ? 1 : 0
+                        color: row.state === "done" ? Theme.success : row.state === "running" ? Theme.m3primary : Theme.danger
                     }
                     Text { text: "Subagent"; color: Theme.teal; font.pixelSize: 11; font.weight: Font.DemiBold }
                     Text { Layout.fillWidth: true; text: row.text; color: Theme.text; font.pixelSize: 12
