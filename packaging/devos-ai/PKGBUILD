@@ -4,7 +4,7 @@
 
 pkgname=devos-ai
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc='DevOS AI daemon, CLI and sandboxed agent runtime'
 arch=('any')
 url='https://github.com/DevOS'

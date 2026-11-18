@@ -248,8 +248,13 @@ def main(argv: list[str] | None = None) -> None:
     au = sub.add_parser("audit", help="show the AI audit log")
     au.add_argument("-n", type=int, default=50)
     au.add_argument("--json", action="store_true")
+    sub.add_parser("mcp", help="serve the DevOS system tools to DevOS Agent (MCP over stdio)")
     args = ap.parse_args(argv)
 
+    if args.cmd == "mcp":
+        from devos import mcp
+        mcp.main()
+        return
     if args.cmd == "audit":
         fn = cmd_audit
     else:
