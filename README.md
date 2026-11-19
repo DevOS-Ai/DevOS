@@ -1,450 +1,315 @@
 <div align="center">
 
-# DevOS
-
-### The AI-Native Developer Operating System
-
-**A developer-focused Linux distribution built on Arch Linux,
-designed to make AI a first-class part of the operating system.**
+<img src="docs/assets/banner.jpg" alt="DevOS — the AI-native operating system for developers" width="100%">
 
 <br>
 
-[![Arch Linux](https://img.shields.io/badge/Base-Arch%20Linux-1793D1?style=for-the-badge\&logo=arch-linux\&logoColor=white)](https://archlinux.org/)
-[![Hyprland](https://img.shields.io/badge/Desktop-Hyprland-58E6D9?style=for-the-badge)](https://hyprland.org/)
-[![Gemini](https://img.shields.io/badge/AI-Gemini-4285F4?style=for-the-badge\&logo=google)](https://ai.google.dev/)
-[![Status](https://img.shields.io/badge/Status-MVP%20Development-orange?style=for-the-badge)]()
+**A developer-focused Linux distribution where an AI agent lives at the core of the operating system.**<br>
+It sees the system, acts through controlled tools, and automates work on its own schedule.
 
 <br>
 
-> **AI should operate the system through DevOS, not around DevOS.**
+[![Base](https://img.shields.io/badge/base-Arch%20Linux-1793D1?style=flat-square&logo=archlinux&logoColor=white)](https://archlinux.org/)
+[![Desktop](https://img.shields.io/badge/desktop-Hyprland-2DD4BF?style=flat-square&logo=wayland&logoColor=white)](https://hyprland.org/)
+[![Design](https://img.shields.io/badge/design-Material%20You-A78BFA?style=flat-square&logo=materialdesign&logoColor=white)](https://m3.material.io/)
+[![Agent](https://img.shields.io/badge/agent-MCP%20system%20tools-0E1521?style=flat-square)](#-the-agent)
+[![Version](https://img.shields.io/badge/version-0.1.0%20preview-F59E0B?style=flat-square)](ROADMAP.md)
+
+[**Overview**](#-overview) · [**The Agent**](#-the-agent) · [**Screenshots**](#-screenshots) · [**Install**](#-install) · [**Build**](#-build-from-source) · [**Roadmap**](#-roadmap) · [**Docs**](#-documentation)
 
 </div>
 
----
+<br>
 
-## What is DevOS?
+<table align="center">
+<tr>
+<td align="center" width="140">
+<img src="docs/assets/iau-tabriz.png" alt="Islamic Azad University" width="84">
+</td>
+<td>
 
-DevOS is an **AI-native Linux distribution for software developers**.
+**Supported by the Faculty of Artificial Intelligence,<br>Islamic Azad University, Tabriz Branch**
 
-Built on top of Arch Linux, DevOS combines a modern Wayland desktop, a ready-to-use development environment, and an integrated AI agent capable of interacting with the operating system and development projects through a controlled permission system.
+The university sponsors DevOS and hosts its official package mirror.
 
-The goal is simple:
+</td>
+</tr>
+</table>
 
-**Turn the operating system itself into a development companion.**
+<br>
 
-Instead of treating AI as another application running on top of the OS, DevOS makes AI part of the developer workflow.
+## ◆ Overview
 
----
+Today, AI assistants live *beside* the operating system: in a browser tab or a separate app. They can't see your windows, packages or network, and they can't act on them. So developers end up copying commands between a chat window and a terminal. Every conversation starts from zero, and nothing runs on its own.
 
-## ✨ Core Ideas
+**DevOS turns the agent into a layer of the operating system.** DevOS Agent starts when you log in and runs as a per-user system service. It reaches the system through a set of typed, permission-checked tools, and you can call it from anywhere: the desktop, a keyboard shortcut or the terminal.
 
-<div align="center">
+> **AI operates the system *through* DevOS, never around it.** The agent proposes; DevOS decides what is allowed; the user approves anything that changes the system.
 
-|             Developer First             |         AI Native         |         User Controlled        |
-| :-------------------------------------: | :-----------------------: | :----------------------------: |
-| Built around real development workflows | AI integrated into the OS | No unrestricted AI root access |
+<br>
 
-|               Modular              |        Reproducible        |          Open Source         |
-| :--------------------------------: | :------------------------: | :--------------------------: |
-| Replaceable providers and runtimes | Configuration lives in Git | Built with open technologies |
+<table>
+<tr>
+<td width="33%" valign="top">
 
-</div>
+### 🧠 Agent at the core
+DevOS Agent runs from login as a per-user service on `127.0.0.1`, with its own key, memory, skills and scheduler.
 
----
+</td>
+<td width="33%" valign="top">
 
-## 🧠 AI-Native Architecture
+### 🛠️ Real system tools
+**17 MCP tools** for windows, workspaces, apps, screenshots, network, audio, brightness and packages. Every change needs your approval.
 
-DevOS introduces a controlled bridge between AI and the operating system:
+</td>
+<td width="33%" valign="top">
 
-```text
-                         ┌──────────────────┐
-                         │      User        │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │    DevOS AI      │
-                         │       UI         │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │      Agent       │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                     ┌────────────────────────┐
-                     │   Permission Manager   │
-                     └────────────┬───────────┘
-                                  │
-                     ┌────────────┼────────────┐
-                     ▼            ▼            ▼
-                 Filesystem    Terminal       Git
-                     │            │            │
-                     └────────────┼────────────┘
-                                  ▼
-                              Linux OS
+### ⏱️ Automation
+Recurring jobs in plain language, **50+ skills** the agent picks on its own (and learns new ones), and memory that carries across conversations.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 🖥️ Everywhere you work
+A Material You panel on the desktop (<kbd>Super</kbd> <kbd>A</kbd>), the end-4 sidebar, and a full terminal UI with `devos-agent`, over SSH too.
+
+</td>
+<td valign="top">
+
+### 🔐 You stay in control
+Local-only API, approval for every change, package changes through the polkit prompt (never sudo), an audit log, and telemetry **off** by default.
+
+</td>
+<td valign="top">
+
+### 💿 Graphical, offline install
+A live Hyprland installer with disk encryption (LUKS2) and six developer profiles. **Every package is on the USB stick**, so you need no internet.
+
+</td>
+</tr>
+</table>
+
+<br>
+
+## ◆ The agent
+
+```mermaid
+flowchart TB
+    U([You]) --> S
+    subgraph S [Where you call it]
+        direction LR
+        P[DevOS panel<br/>Super+A] ~~~ B[Desktop sidebar] ~~~ T[Terminal UI<br/>devos-agent] ~~~ K[Shortcuts]
+    end
+    S --> A
+    subgraph A [DevOS Agent · per-user service on 127.0.0.1]
+        direction LR
+        M[Memory] ~~~ SK[Skills] ~~~ J[Schedules] ~~~ AP[Approvals]
+    end
+    A -->|MCP| X
+    subgraph X [DevOS system tools]
+        direction LR
+        W[Windows &<br/>workspaces] ~~~ AA[Apps &<br/>screen] ~~~ N[System &<br/>network] ~~~ PK[Packages]
+    end
+    X --> O[(Arch Linux · Hyprland · systemd · NetworkManager · pacman)]
+
+    style A fill:#0f2a33,stroke:#2DD4BF,color:#ECEFF7
+    style X fill:#1c1a3a,stroke:#A78BFA,color:#ECEFF7
+    style S fill:#161E36,stroke:#33406A,color:#ECEFF7
 ```
 
-The AI does not directly control the system.
+### System tools
 
-It requests operations.
+| Area | Tools | What the agent can do |
+| :-- | :-- | :-- |
+| **Desktop** | `desktop_state` `focus_window` `switch_workspace` `move_window` `window_action` | Read monitors, workspaces and windows; arrange and manage them |
+| **Apps & screen** | `list_apps` `launch_app` `screenshot` `notify` | Find and start applications, look at the screen, send notifications |
+| **System & network** | `system_status` `set_volume` `set_brightness` `wifi_networks` `wifi_connect` | Report system health, adjust audio and brightness, join Wi-Fi |
+| **Packages** | `packages_search` `packages_installed` `packages_change` | Search, list, install and remove software with the administrator's password |
 
-**DevOS decides what is allowed.**
+Read-only tools run freely. **Any tool that changes the desktop or the system asks you first**, and every call is written to the DevOS audit log.
 
----
+### Models
 
-## 🤖 AI Capabilities
+You choose the model: **52 providers**, from Gemini, OpenAI and Anthropic to OpenRouter, DeepSeek and a **local model** on your own machine. Keys are stored only in the user's private agent settings (`0600`) and never leave the machine except to the provider you chose.
 
-The DevOS agent is designed to work directly with development environments.
+<br>
 
-It can eventually:
+## ◆ Screenshots
 
-* Inspect projects
-* Understand project structure
-* Read source code
-* Search files
-* Analyze errors
-* Inspect Git state
-* Run development commands
-* Run tests
-* Propose code changes
-* Modify files with approval
-* Inspect system resources
-* Manage development environments
+<table>
+<tr>
+<td colspan="2"><img src="docs/screenshots/login.jpg" alt="DevOS login screen with the waves wallpaper"><p align="center"><sub><b>Login</b>: the end-4 lock design on Hyprland, colors from the wallpaper</sub></p></td>
+</tr>
+<tr>
+<td width="38%"><img src="docs/screenshots/agent-panel.jpg" alt="DevOS Agent panel"><p align="center"><sub><b>DevOS Agent panel</b>: chat, history, schedules, skills, memory, settings</sub></p></td>
+<td width="62%"><img src="docs/screenshots/agent-terminal.jpg" alt="DevOS Agent terminal UI"><p align="center"><sub><b>Terminal UI</b>: <code>devos-agent</code>, the same agent in any terminal</sub></p></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/agent-skills.jpg" alt="DevOS Agent skills"><p align="center"><sub><b>Skills</b>: picked automatically, learned from finished work</sub></p></td>
+<td><img src="docs/screenshots/installer-profiles.jpg" alt="DevOS graphical installer, developer profiles"><p align="center"><sub><b>Installer</b>: six developer profiles, all available offline</sub></p></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/installer-welcome.jpg" alt="DevOS installer welcome page"><p align="center"><sub><b>Installer</b>: welcome</sub></p></td>
+<td><img src="docs/screenshots/lock.jpg" alt="DevOS lock screen"><p align="center"><sub><b>Lock screen</b>: hyprlock in the same design</sub></p></td>
+</tr>
+</table>
 
-Potentially dangerous operations require explicit user approval.
+<br>
 
-```text
-AI
- │
- ├── Read project
- ├── Analyze code
- ├── Inspect Git
- ├── Run command ──────► Approval
- │                         │
- │                         ▼
- │                      Execute
- │
- └── Modify system ────► Approval
+## ◆ Developer profiles
+
+The installer sets up **General** on every system; the others are one click away, during installation or later from Welcome.
+
+| Profile | Highlights |
+| :-- | :-- |
+| **General** | Git, GitHub CLI, Clang/LLVM, CMake, Ninja, GDB, Python, uv, Node.js, TypeScript, Go, Rust, Podman, VS Code, Neovim, ripgrep, fzf, tmux |
+| **Web** | pnpm, Yarn, Deno, Bun, nginx, Chromium, Firefox Developer Edition |
+| **Backend** | PostgreSQL, Valkey, MariaDB client, OpenJDK, Maven, Gradle, .NET SDK, PHP, Composer, gRPC |
+| **Systems** | GCC, LLVM, NASM, QEMU, OVMF, bpftrace, Meson, ccache, mold, AArch64 cross compiler |
+| **AI** | PyTorch, NumPy, pandas, scikit-learn, Matplotlib, JupyterLab |
+| **Embedded** | ARM and AVR toolchains, OpenOCD, dfu-util, avrdude, picocom, minicom |
+
+<br>
+
+## ◆ Install
+
+> [!NOTE]
+> DevOS is in **preview** (0.1.0). Try it in a virtual machine or on a spare disk.
+
+**Requirements:** a 64-bit PC with **UEFI** firmware (BIOS boot is not supported), **8 GB RAM** and a **32 GB** disk recommended, and a **16 GB** USB stick.
+
+1. Write the ISO to a USB stick (for example with `dd`, Ventoy or Fedora Media Writer).
+2. Boot it. The live system opens the **DevOS Installer** straight away.
+3. Choose region, disk (optionally encrypted), account and profiles. **No network connection is needed.**
+4. Restart into DevOS, open the panel with <kbd>Super</kbd> <kbd>A</kbd>, connect a model, and start working.
+
+<details>
+<summary><b>Unattended and text-mode installs</b></summary>
+
+<br>
+
+From the live system's terminal:
+
+```bash
+sudo devos-install                       # text installer
+sudo devos-install --config install.conf # unattended, see installer/example.conf
 ```
 
----
+</details>
 
-## 🛡️ Security Model
+<br>
 
-DevOS follows a fundamental rule:
+## ◆ Build from source
 
-<div align="center">
+On an Arch Linux host:
 
-# AI ≠ Root
-
-</div>
-
-Agent operations are classified into three levels:
-
-### SAFE
-
-Operations that normally require no confirmation.
-
-```text
-pwd
-ls
-git status
-git diff
-read_file
-system_info
+```bash
+sudo pacman -S --needed archiso grub mtools base-devel git
+scripts/build-repo.sh          # build the DevOS packages into repo/x86_64
+sudo scripts/build-iso.sh      # build dist/devos-<version>-x86_64.iso
 ```
 
-### CONFIRM
+The ISO carries every package an install can need. To keep the package cache and staging on a larger disk:
 
-Operations that require explicit user approval.
-
-```text
-write_file
-git commit
-package installation
-package removal
-process termination
-configuration changes
+```bash
+sudo DEVOS_PKG_CACHE=/data/devos/pkgcache DEVOS_MEDIUM_DIR=/data/devos/medium \
+     scripts/build-iso.sh -o /data/devos/dist
 ```
 
-### BLOCKED
+See **[docs/building.md](docs/building.md)** for checks and VM testing.
 
-Operations that are blocked by default.
+<br>
 
-```text
-disk formatting
-destructive disk operations
-credential extraction
-security bypass
-unrestricted privileged shell
-```
-
-The permission layer is independent from the AI provider.
-
----
-
-## 🖥️ Developer Environment
-
-DevOS aims to provide a complete development environment from the first boot.
-
-### Languages & Toolchains
-
-* C / C++
-* Python
-* JavaScript
-* TypeScript
-* Node.js
-* Go
-* Rust
-
-### Development Tools
-
-* Git
-* OpenSSH
-* GCC
-* Clang
-* CMake
-* Make
-* GDB
-* Neovim
-* Docker / Podman
-* ripgrep
-* fd
-* fzf
-* jq
-* tmux
-* curl
-* wget
-
-Developer profiles will allow users to install environments based on their workflow:
+## ◆ Repository
 
 ```text
-General
-Web
-Backend
-Systems
-AI
-Embedded
+agent/        DevOS Agent: launcher, defaults, terminal skin, engine branding
+ai/           DevOS system tools (MCP server), policy and helpers
+desktop/      DevOS shell (panel, Welcome), login and lock, end-4 integration, wallpapers
+installer/    devos-install, the graphical installer (Quickshell) and live session
+iso/          archiso profile of the live system
+packaging/    PKGBUILDs of the [devos] repository
+developer/    developer profiles, runtimes and tools
+boot/         GRUB theme and Plymouth splash
+scripts/      build, check and render scripts
+docs/         documentation
 ```
 
----
+<br>
 
-## 🖥️ Desktop
+## ◆ Roadmap
 
-DevOS uses a modern Wayland-based desktop experience.
+| Phase | Status |
+| :-- | :-- |
+| Foundation: archiso profile, `[devos]` repository, reproducible ISO | ✅ Done |
+| Desktop: Hyprland, end-4, Material You design system, login, lock, splash | ✅ Done |
+| Developer environment: six profiles | ✅ Done |
+| Installer: graphical, offline, LUKS2 | ✅ Done |
+| DevOS Agent: system tools, approvals, schedules, skills, memory, terminal UI | ✅ Done |
+| Hardware testing and performance measurements | 🔜 Next |
+| Package signing and security review | 🔜 Next |
+| Documentation and the **DevOS 0.1.0** release | 🔜 Next |
 
-```text
-Arch Linux
-    │
-    ├── Wayland
-    │
-    ├── Hyprland
-    │
-    └── end-4
-```
+Details in **[ROADMAP.md](ROADMAP.md)**; requirements in the **[SRS](SRS.md)**.
 
-The desktop is designed around:
+<br>
 
-* Keyboard-driven workflows
-* Developer productivity
-* Minimal distractions
-* Modern UI
-* Fast application access
-* Integrated AI interaction
+## ◆ Documentation
 
----
+| | |
+| :-- | :-- |
+| **[Software Requirements Specification](SRS.md)** | Architecture, decisions and requirements |
+| **[Building](docs/building.md)** | Packages, ISO, checks, VM testing |
+| **[Keybindings](docs/keybindings.md)** | Desktop and agent shortcuts |
+| **[Security](docs/security.md)** | Security controls and known gaps |
+| **[Contributing](CONTRIBUTING.md)** | How to propose and submit changes |
 
-## 🏗️ Project Architecture
+<br>
 
-```text
-devos/
-│
-├── iso/
-├── core/
-├── desktop/
-├── developer/
-├── ai/
-│   ├── client/
-│   ├── providers/
-│   │   └── gemini/
-│   ├── agent/
-│   ├── runtime/
-│   ├── tools/
-│   └── permissions/
-│
-├── installer/
-├── scripts/
-└── docs/
-```
+## ◆ Founder
 
-The architecture is intentionally modular.
-
-AI providers, agent runtimes, tools, and permission mechanisms should be replaceable without redesigning the entire operating system.
-
----
-
-## 🚀 MVP
-
-DevOS is currently in **MVP development**.
-
-### Phase 1
-
-```text
-01  Foundation
-        ↓
-02  Desktop
-        ↓
-03  Developer Environment
-        ↓
-04  AI Client
-        ↓
-05  Agent Runtime
-        ↓
-06  Permission System
-        ↓
-07  Full Integration
-        ↓
-08  DevOS 0.1.0
-```
-
-The first release focuses on proving the core concept:
-
-> **A developer can use an AI agent to interact with their development environment while DevOS remains in control of system-level operations.**
-
----
-
-## 🧪 Example Workflow
-
-A typical DevOS workflow:
-
-```text
-Boot DevOS
-     ↓
-Open Project
-     ↓
-Open DevOS AI
-     ↓
-Connect Gemini
-     ↓
-Ask Agent to Analyze Project
-     ↓
-Agent Inspects Files
-     ↓
-Agent Checks Git
-     ↓
-Agent Runs Tests
-     ↓
-Permission Request
-     ↓
-User Approval
-     ↓
-Agent Applies Fix
-     ↓
-Tests Run Again
-     ↓
-Task Complete
-```
-
-This workflow is the foundation of the DevOS vision.
-
----
-
-## 🗺️ Roadmap
-
-### MVP
-
-* [x] Initial Archiso profile
-* [ ] DevOS ISO build system
-* [ ] Base system configuration
-* [ ] Hyprland integration
-* [ ] end-4 integration
-* [ ] Developer environment
-* [ ] AI client
-* [ ] Gemini integration
-* [ ] Agent runtime
-* [ ] System tools
-* [ ] Permission system
-* [ ] MVP testing
-* [ ] DevOS 0.1.0
-
-### Future
-
-* Local LLM support
-* Multi-model support
-* Multiple agent runtimes
-* Agent skills
-* Background agents
-* Scheduled agents
-* AI memory
-* Voice interface
-* Computer vision
-* AI-assisted package management
-* AI-assisted system administration
-* Self-diagnosis
-* Self-healing workflows
-
----
-
-## 📚 Documentation
-
-The project documentation is being developed alongside the implementation.
-
-Important documents:
-
-* **[Software Requirements Specification](SRS.md)**
-* **[Roadmap](ROADMAP.md)**
-* **[Contributing Guide](CONTRIBUTING.md)**
-
-The SRS is the current architectural and functional baseline for MVP development.
-
----
-
-## 🤝 Contributing
-
-DevOS is being developed as an open-source project.
-
-Contributions, ideas, experiments, documentation, testing, and architectural discussions are welcome.
-
-Before contributing, please read:
-
-```text
-CONTRIBUTING.md
-```
-
-For major architectural changes, please discuss the proposal before implementation.
-
----
-
-## 👨‍💻 Developer
-
-<div align="center">
+<table>
+<tr>
+<td>
 
 ### Ehsan Fazli
+**Founder and lead developer of DevOS**
 
-Software Engineer · Computer Engineering · Linux · AI · Systems
+Ehsan designed DevOS and builds it: the distribution, the desktop, the installer and the system agent at its core.
 
-**Building DevOS**
-
-</div>
-
----
-
-## 📜 License
-
-License information will be finalized before the first public release.
-
----
-
-<div align="center">
-
-### DevOS
-
-**Build. Think. Automate.**
+</td>
+</tr>
+</table>
 
 <br>
 
-*An operating system designed for the age of AI.*
+## ◆ Acknowledgements
+
+DevOS stands on the shoulders of open source:
+[Arch Linux](https://archlinux.org/) ·
+[Hyprland](https://hyprland.org/) ·
+[end-4 dots-hyprland](https://github.com/end-4/dots-hyprland) ·
+[Quickshell](https://quickshell.org/) ·
+[Model Context Protocol](https://modelcontextprotocol.io/) ·
+[Material Symbols and Google Fonts](https://fonts.google.com/).
+DevOS Agent is built on an MIT-licensed open-source agent engine; its license ships with the package.
+
+## ◆ License
+
+DevOS's own packages are licensed under **GPL-3.0-or-later**. Bundled third-party components keep their own licenses.
+
+<br>
+
+<div align="center">
+
+<img src="docs/assets/iau-tabriz.png" alt="" width="40">
+
+<sub>Supported by the Faculty of Artificial Intelligence · Islamic Azad University, Tabriz Branch</sub>
+
+<br><br>
+
+**DevOS** · Build. Think. Automate.
 
 </div>
