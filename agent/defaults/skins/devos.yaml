@@ -1,0 +1,59 @@
+# DevOS Agent terminal skin (classic CLI and TUI). Installed by devos-agent into the agent
+# home; select another with /skin, or set display.skin in config.yaml.
+name: devos
+description: DevOS — teal and violet on deep navy
+colors:
+  banner_border: "#2DD4BF"
+  banner_title: "#E6EDF7"
+  banner_accent: "#2DD4BF"
+  banner_dim: "#5C6880"
+  banner_text: "#C9D4E5"
+  ui_accent: "#2DD4BF"
+  ui_label: "#A78BFA"
+  ui_ok: "#4ADE80"
+  ui_error: "#F87171"
+  ui_warn: "#FBBF24"
+  prompt: "#E6EDF7"
+  input_rule: "#1F6F66"
+  response_border: "#2DD4BF"
+  session_label: "#A78BFA"
+  session_border: "#5C6880"
+  status_bar_bg: "#0E1521"
+  voice_status_bg: "#0E1521"
+  selection_bg: "#1F3A4A"
+  completion_menu_bg: "#0E1521"
+  completion_menu_current_bg: "#173041"
+  completion_menu_meta_bg: "#0E1521"
+  completion_menu_meta_current_bg: "#173041"
+spinner:
+  waiting_faces: ["›_", "› ", "›_", "  "]
+  thinking_faces: ["◜", "◝", "◞", "◟"]
+  thinking_verbs: ["thinking", "planning", "reading the system", "working", "checking", "building"]
+  wings: [["⟨", "⟩"]]
+branding:
+  agent_name: DevOS Agent
+  welcome: "DevOS Agent is ready. Ask a question or give it a task — /help for commands."
+  goodbye: "See you. ›_"
+  response_label: " ›_ DevOS Agent "
+  prompt_symbol: "›"
+  help_header: "›_ DevOS Agent commands"
+tool_prefix: "│"
+# One color per line: the TUI draws each [color]…[/] span on a line of its own.
+banner_logo: |
+  [bold #2DD4BF]██████╗ ███████╗██╗   ██╗ ██████╗ ███████╗[/]
+  [bold #3CC8C6]██╔══██╗██╔════╝██║   ██║██╔═══██╗██╔════╝[/]
+  [bold #56B5D2]██║  ██║█████╗  ██║   ██║██║   ██║███████╗[/]
+  [bold #6FA0DE]██║  ██║██╔══╝  ╚██╗ ██╔╝██║   ██║╚════██║[/]
+  [bold #8A85EA]██████╔╝███████╗ ╚████╔╝ ╚██████╔╝███████║[/]
+  [bold #A78BFA]╚═════╝ ╚══════╝  ╚═══╝   ╚═════╝ ╚══════╝  agent[/]
+banner_hero: |
+  [bold #2DD4BF]╭────────────────────╮[/]
+  [bold #2DD4BF]│                    │[/]
+  [bold #38CBC4]│   ╲                │[/]
+  [bold #45C0CB]│    ╲               │[/]
+  [bold #56B5D2]│     ╲              │[/]
+  [bold #6FA0DE]│     ╱              │[/]
+  [bold #7C93E4]│    ╱               │[/]
+  [bold #8A85EA]│   ╱    ━━━━━━      │[/]
+  [bold #9888F2]│                    │[/]
+  [bold #A78BFA]╰────────────────────╯[/]

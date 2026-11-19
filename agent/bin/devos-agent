@@ -15,6 +15,8 @@ export HERMES_HOME="${DEVOS_AGENT_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/dev
 export HERMES_BIN=/usr/bin/devos-agent
 # Packaged install: no self-update, no runtime downloads of the engine's dependencies.
 export HERMES_DISABLE_LAZY_INSTALLS=1
+# The terminal UI (TUI) runs on the system Node.js.
+export HERMES_NODE=/usr/bin/node
 
 /usr/lib/devos/agent/init-home
 

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=DevOS Agent (terminal)
+GenericName=AI agent
+Comment=Work with DevOS Agent in a full-screen terminal interface
+Exec=kitty --class devos-agent-terminal --title "DevOS Agent" devos-agent
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;Utility;
+Keywords=ai;agent;assistant;terminal;tui;

@@ -9,15 +9,16 @@ _commit=36922ad064d65dcf25f8f48df81e1ccf9a55de67
 _engine_version=0.21.5
 pkgname=devos-agent
 pkgver=0.1.0
-pkgrel=4
+pkgrel=5
 pkgdesc='DevOS Agent: system and user level AI agent with scheduled tasks'
 arch=('x86_64')
 url='https://github.com/DevOS'
 license=('GPL-3.0-or-later' 'MIT')
 # The bundled dependencies are built for this Python minor version.
 depends=('python>=3.14' 'python<3.15' 'devos-ai' 'git' 'ripgrep' 'grim' 'libnotify'
-         'wireplumber' 'brightnessctl' 'networkmanager' 'polkit' 'systemd')
-makedepends=('uv')
+         'wireplumber' 'brightnessctl' 'networkmanager' 'polkit' 'systemd'
+         'nodejs')   # the terminal UI (TUI) bundle runs on Node.js
+makedepends=('uv' 'npm')
 options=('!strip' '!debug')
 source=("engine-$_commit.tar.gz::https://github.com/NousResearch/hermes-agent/archive/$_commit.tar.gz")
 sha256sums=('b6506ada6cc24f5d5fbd1f1efcde9e5807e97b43d68441015ffdd51101a2a832')
@@ -30,11 +31,12 @@ _extras=(mcp ddgs messaging anthropic)
 
 prepare() {
     cd "$srcdir/hermes-agent-$_commit"
-    sed -i -f "$_agent/patches/engine-branding.sed" hermes_cli/main.py hermes_cli/gateway.py
+    sed -i -f "$_agent/patches/engine-branding.sed" hermes_cli/main.py hermes_cli/gateway.py hermes_cli/banner.py
     sed -i -f "$_agent/patches/engine-fixes.sed" gateway/platforms/api_server.py
     ! grep -q 'include_editorial=True' gateway/platforms/api_server.py || { error "engine fixes did not apply"; return 1; }
     grep -q 'setproctitle("devos-agent")' hermes_cli/main.py && grep -q 'b"devos-agent"' hermes_cli/main.py \
-        && grep -q 'DevOS Agent starting' hermes_cli/gateway.py || { error "engine branding patch did not apply"; return 1; }
+        && grep -q 'DevOS Agent starting' hermes_cli/gateway.py && grep -q 'DevOS Agent · engine' hermes_cli/banner.py \
+        || { error "engine branding patch did not apply"; return 1; }
 }
 
 build() {
@@ -45,6 +47,22 @@ build() {
     rm -rf "$srcdir/site"
     UV_CACHE_DIR="$srcdir/uv-cache" uv pip install --python /usr/bin/python3 --require-hashes \
         --no-compile --target "$srcdir/site" -r "$srcdir/requirements.txt"
+
+    # Terminal UI: one bundled entry.js, built from the engine's npm lockfile (npm ci), placed
+    # where the engine looks for a prebuilt TUI. Only Node.js is needed at runtime.
+    export npm_config_cache="$srcdir/npm-cache"
+    node scripts/build/node-deps.mjs --source "$PWD" --workspace ui-tui
+    rm -rf "$srcdir/tui"
+    node scripts/build/tui.mjs --source "$PWD" --out "$srcdir/tui"
+    rm -rf hermes_cli/tui_dist
+    install -d hermes_cli/tui_dist
+    cp -a "$srcdir/tui/dist/." hermes_cli/tui_dist/
+    install -m644 "$srcdir/tui/package.json" hermes_cli/tui_dist/package.json
+
+    # DevOS Agent wording in what the user reads (TUI, terminal messages, banner).
+    python "$_agent/patches/engine-branding.py" hermes_cli/tui_dist/entry.js tui_gateway/*.py \
+        hermes_cli/cli*.py hermes_cli/banner.py >/dev/null
+    node --check hermes_cli/tui_dist/entry.js
 }
 
 package() {
@@ -78,11 +96,13 @@ STAMP
     install -Dm644 "$_agent/lib/launch.py" "$pkgdir$_lib/launch.py"
     install -Dm644 "$_agent/lib/provider.py" "$pkgdir$_lib/provider.py"
     install -Dm644 -t "$pkgdir/usr/share/devos/agent" "$_agent/defaults/SOUL.md" "$_agent/defaults/config.yaml"
+    install -Dm644 "$_agent/defaults/skins/devos.yaml" "$pkgdir/usr/share/devos/agent/skins/devos.yaml"
     install -Dm644 "$_agent/systemd/devos-agent.service" "$pkgdir/usr/lib/systemd/user/devos-agent.service"
     # Every user's desktop session starts the agent.
     install -d "$pkgdir/usr/lib/systemd/user/graphical-session.target.wants"
     ln -s ../devos-agent.service "$pkgdir/usr/lib/systemd/user/graphical-session.target.wants/devos-agent.service"
     install -Dm644 "$_agent/README.md" "$pkgdir/usr/share/doc/devos-agent/README.md"
+    install -Dm644 "$_agent/devos-agent-terminal.desktop" "$pkgdir/usr/share/applications/devos-agent-terminal.desktop"
     # The engine's MIT license travels with it (third-party licenses are in each dist-info).
     install -Dm644 "$engine/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE.engine"
 }

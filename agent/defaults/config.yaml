@@ -21,3 +21,15 @@ mcp_servers:
     command: /usr/bin/devos
     args: [mcp]
     trust: untrusted
+
+# Terminal client (`devos-agent`): the full-screen TUI with the DevOS skin.
+# `devos-agent --cli` starts the classic line-based interface instead.
+display:
+  skin: devos
+  interface: tui
+
+# No usage metrics leave this computer (and no question about it on first start).
+telemetry:
+  shared_metrics:
+    enabled: false
+    send: false

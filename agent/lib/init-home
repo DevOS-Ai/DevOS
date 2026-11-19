@@ -12,7 +12,27 @@ defaults=/usr/share/devos/agent
 mkdir -p "$home"
 
 [ -e "$home/SOUL.md" ] || cp "$defaults/SOUL.md" "$home/SOUL.md"
-[ -e "$home/config.yaml" ] || cp "$defaults/config.yaml" "$home/config.yaml"
+# DEFAULTS: bump when the defaults below change for homes made by an earlier package.
+DEFAULTS=2
+mark="$home/.devos-defaults"
+if [ ! -e "$home/config.yaml" ]; then
+    cp "$defaults/config.yaml" "$home/config.yaml"
+    echo "$DEFAULTS" >"$mark"
+elif [ "$(cat "$mark" 2>/dev/null)" != "$DEFAULTS" ]; then
+    # A home from an earlier package: add the DevOS look (skin, TUI) once, and answer the
+    # engine's usage-metrics question with "off" unless the user already answered it.
+    cfg() { /usr/bin/python3 -I /usr/lib/devos/agent/launch.py config set "$1" "$2" >/dev/null 2>&1 || true; }
+    cfg display.skin devos
+    cfg display.interface tui
+    if ! grep -q 'shared_metrics' "$home/config.yaml"; then
+        cfg telemetry.shared_metrics.enabled false
+        cfg telemetry.shared_metrics.send false
+    fi
+    echo "$DEFAULTS" >"$mark"
+fi
+# The DevOS terminal skin follows the package (other skins in skins/ are the user's).
+mkdir -p "$home/skins"
+cmp -s "$defaults/skins/devos.yaml" "$home/skins/devos.yaml" || cp "$defaults/skins/devos.yaml" "$home/skins/devos.yaml"
 
 env="$home/.env"
 touch "$env"
