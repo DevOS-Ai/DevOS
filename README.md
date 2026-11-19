@@ -14,6 +14,8 @@ It sees the system, acts through controlled tools, and automates work on its own
 [![Design](https://img.shields.io/badge/design-Material%20You-A78BFA?style=flat-square&logo=materialdesign&logoColor=white)](https://m3.material.io/)
 [![Agent](https://img.shields.io/badge/agent-MCP%20system%20tools-0E1521?style=flat-square)](#-the-agent)
 [![Version](https://img.shields.io/badge/version-0.1.0%20preview-F59E0B?style=flat-square)](ROADMAP.md)
+[![License](https://img.shields.io/badge/license-GPL--3.0-2DD4BF?style=flat-square)](LICENSE)
+[![CI](https://github.com/DevOS-Ai/DevOS/actions/workflows/ci.yml/badge.svg)](https://github.com/DevOS-Ai/DevOS/actions/workflows/ci.yml)
 
 [**Overview**](#-overview) · [**The Agent**](#-the-agent) · [**Screenshots**](#-screenshots) · [**Install**](#-install) · [**Build**](#-build-from-source) · [**Roadmap**](#-roadmap) · [**Docs**](#-documentation)
 
@@ -297,7 +299,7 @@ DevOS Agent is built on an MIT-licensed open-source agent engine; its license sh
 
 ## ◆ License
 
-DevOS's own packages are licensed under **GPL-3.0-or-later**. Bundled third-party components keep their own licenses.
+DevOS is free software, licensed under the **[GNU General Public License v3.0 or later](LICENSE)**. Bundled third-party components keep their own licenses.
 
 <br>
 

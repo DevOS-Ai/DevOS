@@ -126,7 +126,8 @@ if [[ "${DEVOS_OFFLINE:-1}" == 1 ]]; then
             [[ -f "$dir/$file" && -f "$dir/$file.sig" ]] && { pkg="$dir/$file"; break; }
         done
         [[ -n "$pkg" ]] || die "missing $file or its signature; run the build again"
-        cp -- "$pkg" "$pkg.sig" "$OFF/"
+        # Hard links where the cache and the medium share a file system; copies otherwise.
+        cp -l -- "$pkg" "$pkg.sig" "$OFF/" 2>/dev/null || cp -- "$pkg" "$pkg.sig" "$OFF/"
     done < <("${pac[@]}" -Sp --print-format '%r %f' "${pkgs[@]}")
     cp -- "$DB/sync/core.db" "$DB/sync/extra.db" "$OFF/"
     sed -i -e "/^\[core\]\$/a Server = file://$LIVE_MEDIUM/offline" \
@@ -136,8 +137,11 @@ fi
 
 # mkarchiso puts only its own tree on the ISO; graft the repositories in next to it.
 MKARCHISO="$WORK_DIR/mkarchiso"
+# The ${…} below are mkarchiso's own variables, expanded when it runs: single quotes on purpose.
+# shellcheck disable=SC2016
 sed 's|^        "${isofs_dir}/"$|        -graft-points "${isofs_dir}/" "/devos/=${DEVOS_MEDIUM_DIR}/devos/"|' \
     "$(command -v mkarchiso)" >"$MKARCHISO"
+# shellcheck disable=SC2016
 [[ "$(grep -c '"/devos/=${DEVOS_MEDIUM_DIR}/devos/"' "$MKARCHISO")" == 1 ]] \
     || die "this mkarchiso version is not supported (could not add the repositories to the ISO)"
 chmod +x "$MKARCHISO"

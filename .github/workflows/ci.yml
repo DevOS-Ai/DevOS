@@ -43,6 +43,10 @@ jobs:
           chown -R builder: "$GITHUB_WORKSPACE"
           su builder -c "cd '$GITHUB_WORKSPACE' && scripts/build-repo.sh -s"
       - name: Build ISO
+        # A runner has too little disk for the full offline package set (about 20 GB while
+        # building); CI checks the live system and installer, release ISOs carry every package.
+        env:
+          DEVOS_OFFLINE: "0"
         run: scripts/build-iso.sh
       - uses: actions/upload-artifact@v4
         with:
