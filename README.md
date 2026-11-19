@@ -97,26 +97,25 @@ A live Hyprland installer with disk encryption (LUKS2) and six developer profile
 
 ```mermaid
 flowchart TB
-    U([You]) --> S
-    subgraph S [Where you call it]
-        direction LR
-        P[DevOS panel<br/>Super+A] ~~~ B[Desktop sidebar] ~~~ T[Terminal UI<br/>devos-agent] ~~~ K[Shortcuts]
-    end
-    S --> A
-    subgraph A [DevOS Agent · per-user service on 127.0.0.1]
-        direction LR
-        M[Memory] ~~~ SK[Skills] ~~~ J[Schedules] ~~~ AP[Approvals]
-    end
-    A -->|MCP| X
-    subgraph X [DevOS system tools]
-        direction LR
-        W[Windows &<br/>workspaces] ~~~ AA[Apps &<br/>screen] ~~~ N[System &<br/>network] ~~~ PK[Packages]
-    end
-    X --> O[(Arch Linux · Hyprland · systemd · NetworkManager · pacman)]
+    U(["You"]) --> P & B & T & K
+    P["DevOS panel · Super+A"] --> A
+    B["Desktop sidebar"] --> A
+    T["Terminal UI · devos-agent"] --> A
+    K["Shortcuts"] --> A
+    A["DevOS Agent<br/>per-user service on 127.0.0.1<br/>memory · skills · schedules · approvals"]
+    A -- MCP --> W & AA & N & PK
+    W["Windows and workspaces"] --> O
+    AA["Apps and screen"] --> O
+    N["System and network"] --> O
+    PK["Packages"] --> O
+    O[("Arch Linux · Hyprland · systemd · NetworkManager · pacman")]
 
-    style A fill:#0f2a33,stroke:#2DD4BF,color:#ECEFF7
-    style X fill:#1c1a3a,stroke:#A78BFA,color:#ECEFF7
-    style S fill:#161E36,stroke:#33406A,color:#ECEFF7
+    classDef agent fill:#0f2a33,stroke:#2DD4BF,color:#ECEFF7
+    classDef tool fill:#1c1a3a,stroke:#A78BFA,color:#ECEFF7
+    classDef entry fill:#161E36,stroke:#33406A,color:#ECEFF7
+    class A agent
+    class W,AA,N,PK tool
+    class P,B,T,K entry
 ```
 
 ### System tools
