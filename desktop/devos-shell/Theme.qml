@@ -55,8 +55,10 @@ Singleton {
     // The scheme matugen writes for end-4 (snake_case keys: "surface_container_low", …).
     FileView {
         id: scheme
-        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
-              + "/quickshell/user/generated/colors.json"
+        // DEVOS_THEME_FILE: a fixed scheme (the login screen uses the default wallpaper's).
+        path: Quickshell.env("DEVOS_THEME_FILE")
+              || (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
+                 + "/quickshell/user/generated/colors.json"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: {
@@ -77,7 +79,7 @@ Singleton {
     readonly property color layer1: m3surfaceContainer
     readonly property color layer2: m3surfaceContainerHigh
     readonly property color layer3: m3surfaceContainerHighest
-    readonly property color onLayer: m3onSurface
+    readonly property color layerText: m3onSurface
     function hover(base, on) { return Qt.tint(base, Qt.rgba(on.r, on.g, on.b, 0.08)); }
     function pressed(base, on) { return Qt.tint(base, Qt.rgba(on.r, on.g, on.b, 0.14)); }
     function alpha(c, a) { return Qt.rgba(c.r, c.g, c.b, a); }
@@ -91,7 +93,7 @@ Singleton {
     readonly property color muted: m3onSurfaceVariant
     readonly property color faint: m3outline
     readonly property color teal: m3primary            // accent
-    readonly property color onAccent: m3onPrimary
+    readonly property color accentText: m3onPrimary
     readonly property color violet: m3tertiary         // second accent
     readonly property color danger: m3error
     readonly property color warning: dark ? "#f5c26b" : "#7a5900"

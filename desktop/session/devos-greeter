@@ -8,6 +8,8 @@ conf=/usr/share/devos/greeter/hyprland.lua
 if command -v Hyprland >/dev/null && command -v qs >/dev/null && [ -f "$conf" ]; then
     # The greeter user has no writable home; keep Hyprland's cache and state in /tmp.
     export XDG_CACHE_HOME=/tmp/devos-greeter/cache XDG_STATE_HOME=/tmp/devos-greeter/state
+    # Colors of the default wallpaper, so login looks like the first desktop.
+    export DEVOS_THEME_FILE=/usr/share/devos/greeter/colors.json
     mkdir -p "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
     rm -f /tmp/devos-greeter/failed
     # start-hyprland is Hyprland's launcher (a crash watchdog; plain Hyprland shows a

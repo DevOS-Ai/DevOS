@@ -5,7 +5,8 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Greetd
 
-// DevOS login screen: clock, user card, password, power actions.
+// DevOS login screen in the design of the end-4 lock screen: the wallpaper, a large clock,
+// and three Material 3 toolbars at the bottom (user, password, power).
 // Authentication goes through greetd (PAM); the password is only passed to
 // Greetd.respond() and never stored.
 Item {
@@ -82,7 +83,7 @@ Item {
         ScriptAction { script: Greetd.launch(["devos-session"], [], true) }
     }
     opacity: 0
-    Component.onCompleted: opacity = 1
+    Component.onCompleted: { opacity = 1; entered = true; }
     Behavior on opacity { enabled: !leave.running; NumberAnimation { duration: 450; easing.type: Easing.OutCubic } }
 
     // ------------------------------------------------- user name, host name
@@ -115,156 +116,119 @@ Item {
 
     // --------------------------------------------------------------- visuals
     Image {
+        id: wallpaper
         anchors.fill: parent
-        source: "background.jpg"
+        source: "file:///usr/share/backgrounds/devos/devos.jpg"
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
+    }
+    // Keeps the clock and toolbars readable on any wallpaper.
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Theme.alpha(Theme.m3scrim, 0.30) }
+            GradientStop { position: 0.45; color: Theme.alpha(Theme.m3scrim, 0.0) }
+            GradientStop { position: 1.0; color: Theme.alpha(Theme.m3scrim, 0.45) }
+        }
     }
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
 
+    // Large clock, as on the end-4 lock screen and desktop.
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
-        anchors.topMargin: parent.height * 0.12
-        spacing: 2
+        anchors.topMargin: parent.height * 0.13
+        spacing: 0
+        opacity: root.entered ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 600; easing.type: Easing.OutCubic } }
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: Qt.formatTime(clock.date, "HH:mm")
-            color: Theme.text
+            color: Theme.m3onSurface
             font.family: Theme.display
-            font.pixelSize: 96
-            font.weight: Font.Bold
+            font.pixelSize: Math.min(root.height * 0.17, 180)
+            font.weight: Font.DemiBold
+            font.letterSpacing: -2
         }
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: Qt.formatDate(clock.date, "dddd, d MMMM")
-            color: Theme.muted
-            font.pixelSize: 20
+            color: Theme.m3onSurfaceVariant
+            font.family: Theme.body
+            font.pixelSize: 22
+            font.weight: Font.Medium
         }
     }
 
-    // Login card
-    Rectangle {
-        id: card
-        visible: root.showLogin
-        anchors.centerIn: parent
-        anchors.verticalCenterOffset: parent.height * 0.08
-        width: 400
-        height: cardCol.implicitHeight + 56
-        radius: 24
-        color: Theme.alpha(Theme.layer0, 0.78)
-        border.color: Theme.alpha(Theme.m3outlineVariant, 0.6)
+    // ---------------------------------------------- toolbars (end-4 lock screen)
+    property bool entered: false
 
-        SequentialAnimation {
-            id: shake
-            NumberAnimation { target: card; property: "anchors.horizontalCenterOffset"; to: -10; duration: 50 }
-            NumberAnimation { target: card; property: "anchors.horizontalCenterOffset"; to: 10; duration: 70 }
-            NumberAnimation { target: card; property: "anchors.horizontalCenterOffset"; to: -6; duration: 60 }
-            NumberAnimation { target: card; property: "anchors.horizontalCenterOffset"; to: 0; duration: 50 }
+    component Island: Rectangle {
+        default property alias content: islandRow.data
+        property bool shown: false
+        implicitHeight: 56
+        implicitWidth: islandRow.implicitWidth + 16
+        radius: height / 2
+        color: Theme.m3surfaceContainer
+        scale: shown ? 1 : 0.9
+        opacity: shown ? 1 : 0
+        Behavior on scale { NumberAnimation { duration: 500; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.expressiveDefault } }
+        Behavior on opacity { NumberAnimation { duration: 300 } }
+        layer.enabled: true
+        layer.effect: DropShadow { radius: 18; samples: 25; verticalOffset: 3; color: Theme.alpha(Theme.m3scrim, 0.35) }
+        RowLayout {
+            id: islandRow
+            anchors.fill: parent
+            anchors.margins: 8
+            spacing: 4
         }
+    }
+    component IconButton: Rectangle {
+        id: ib
+        property string icon: ""
+        property string tip: ""
+        signal clicked()
+        Layout.preferredWidth: 40
+        Layout.preferredHeight: 40
+        radius: 20
+        color: ibMouse.pressed ? Theme.pressed(Theme.m3surfaceContainer, Theme.m3onSurface)
+             : ibMouse.containsMouse ? Theme.hover(Theme.m3surfaceContainer, Theme.m3onSurface) : "transparent"
+        MIcon { anchors.centerIn: parent; name: ib.icon; size: 22; color: Theme.m3onSurfaceVariant }
+        MouseArea { id: ibMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: ib.clicked() }
+    }
 
-        ColumnLayout {
-            id: cardCol
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 28
-            spacing: 14
+    Item {
+        visible: root.showLogin
+        anchors.fill: parent
 
-            // Avatar: user initial on the DevOS accent gradient
+        // Center: password, with the confirm button
+        Island {
+            shown: root.entered
+            id: mainIsland
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 24
             Rectangle {
-                Layout.alignment: Qt.AlignHCenter
-                width: 84; height: 84; radius: 42
-                gradient: Gradient {
-                    orientation: Gradient.Horizontal
-                    GradientStop { position: 0; color: Theme.teal }
-                    GradientStop { position: 1; color: Theme.violet }
-                }
-                Rectangle {
-                    id: avatarDisc
-                    anchors.fill: parent
-                    anchors.margins: 3
-                    radius: width / 2
-                    color: Theme.m3primaryContainer
-                    // The user's picture (Settings > Users, via AccountsService), round-clipped.
-                    Image {
-                        id: avatar
-                        anchors.fill: parent
-                        visible: false
-                        fillMode: Image.PreserveAspectCrop
-                        sourceSize: Qt.size(160, 160)
-                        source: userField.text.trim() !== ""
-                                ? "file:///var/lib/AccountsService/icons/" + userField.text.trim() : ""
-                    }
-                    Rectangle { id: avatarMask; anchors.fill: parent; radius: width / 2; visible: false }
-                    OpacityMask {
-                        anchors.fill: parent
-                        visible: avatar.status === Image.Ready
-                        source: avatar
-                        maskSource: avatarMask
-                    }
-                    Text {
-                        anchors.centerIn: parent
-                        visible: avatar.status !== Image.Ready
-                        text: userField.text !== "" ? userField.text[0].toUpperCase() : "›_"
-                        color: Theme.text
-                        font.family: Theme.display
-                        font.pixelSize: 34
-                        font.weight: Font.Bold
-                    }
-                }
-            }
-
-            // User name
-            Rectangle {
-                Layout.fillWidth: true
-                implicitHeight: 46
-                radius: 12
-                color: Theme.alpha(Theme.layer2, 0.8)
-                border.color: userField.activeFocus ? Theme.teal : Theme.alpha(Theme.m3outlineVariant, 0.8)
-                TextInput {
-                    id: userField
-                    anchors.fill: parent
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 16
-                    verticalAlignment: TextInput.AlignVCenter
-                    horizontalAlignment: TextInput.AlignHCenter
-                    color: Theme.text
-                    font.pixelSize: 17
-                    font.weight: Font.DemiBold
-                    clip: true
-                    enabled: !root.busy
-                    KeyNavigation.tab: passwordField
-                    onAccepted: passwordField.forceActiveFocus()
-                    Text {
-                        visible: userField.text === ""
-                        anchors.centerIn: parent
-                        text: "User name"
-                        color: Theme.faint
-                        font.pixelSize: 16
-                    }
-                }
-            }
-
-            // Password
-            Rectangle {
-                Layout.fillWidth: true
-                implicitHeight: 46
-                radius: 12
-                color: Theme.alpha(Theme.layer2, 0.8)
-                border.color: root.messageIsError && root.message !== "" ? Theme.danger
-                            : passwordField.activeFocus ? Theme.teal : Theme.alpha(Theme.m3outlineVariant, 0.8)
+                id: passwordBox
+                Layout.preferredWidth: 300
+                Layout.fillHeight: true
+                radius: height / 2
+                color: Theme.m3surfaceContainerHigh
+                border.width: passwordField.activeFocus ? 2 : 0
+                border.color: root.messageIsError && root.message !== "" ? Theme.m3error : Theme.m3primary
                 TextInput {
                     id: passwordField
                     anchors.fill: parent
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 52
+                    anchors.leftMargin: 18
+                    anchors.rightMargin: 18
                     verticalAlignment: TextInput.AlignVCenter
                     echoMode: TextInput.Password
-                    passwordCharacter: "•"
-                    color: Theme.text
-                    font.pixelSize: 17
+                    passwordCharacter: "●"
+                    color: Theme.m3onSurface
+                    font.family: Theme.body
+                    font.pixelSize: 15
                     clip: true
                     enabled: !root.busy
                     KeyNavigation.tab: userField
@@ -273,70 +237,121 @@ Item {
                     Text {
                         visible: passwordField.text === ""
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Password"
-                        color: Theme.faint
-                        font.pixelSize: 16
+                        text: root.message !== "" ? root.message : "Enter password"
+                        color: root.messageIsError && root.message !== "" ? Theme.m3error : Theme.m3onSurfaceVariant
+                        font.family: Theme.body
+                        font.pixelSize: 15
                     }
                 }
-                // Submit arrow
-                Rectangle {
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.rightMargin: 6
-                    width: 34; height: 34; radius: 10
-                    color: arrow.containsMouse ? Theme.hover(Theme.m3primary, Theme.m3onPrimary) : Theme.m3primary
-                    opacity: root.busy ? 0.5 : 1
-                    Text { anchors.centerIn: parent; text: root.busy ? "…" : "→"; color: Theme.m3onPrimary
-                           font.pixelSize: 18; font.weight: Font.Bold }
-                    MouseArea { id: arrow; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor; onClicked: root.login() }
+                SequentialAnimation {
+                    id: shake
+                    NumberAnimation { target: mainIsland; property: "anchors.horizontalCenterOffset"; to: -10; duration: 50 }
+                    NumberAnimation { target: mainIsland; property: "anchors.horizontalCenterOffset"; to: 10; duration: 70 }
+                    NumberAnimation { target: mainIsland; property: "anchors.horizontalCenterOffset"; to: 0; duration: 60 }
                 }
             }
-
-            Text {
-                Layout.fillWidth: true
-                Layout.minimumHeight: 18
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                text: root.message
-                color: root.messageIsError ? Theme.danger : Theme.muted
-                font.pixelSize: 13
+            Rectangle {
+                id: confirm
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                radius: 20
+                color: confirmMouse.containsMouse ? Theme.hover(Theme.m3primary, Theme.m3onPrimary) : Theme.m3primary
+                opacity: root.busy ? 0.6 : 1
+                MIcon {
+                    anchors.centerIn: parent
+                    name: root.busy ? "hourglass_top" : "arrow_right_alt"
+                    size: 24
+                    color: Theme.m3onPrimary
+                }
+                MouseArea { id: confirmMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: root.login() }
             }
         }
-    }
 
-    // Brand, bottom-left
-    RowLayout {
-        visible: root.showLogin
-        anchors.left: parent.left
-        anchors.bottom: parent.bottom
-        anchors.margins: 28
-        spacing: 10
-        Rectangle {
-            width: 30; height: 30; radius: 9
-            color: Theme.m3primaryContainer
-            border.width: 1.5
-            border.color: Theme.teal
-            Text { anchors.centerIn: parent; text: "›_"; color: Theme.teal
-                   font.family: Theme.mono; font.pixelSize: 13; font.weight: Font.Bold }
+        // Left: who is signing in, and the keyboard layout
+        Island {
+            shown: root.entered
+            anchors.right: mainIsland.left
+            anchors.rightMargin: 10
+            anchors.verticalCenter: mainIsland.verticalCenter
+            Rectangle {
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                Layout.leftMargin: 2
+                radius: 20
+                color: Theme.m3primaryContainer
+                Text {
+                    anchors.centerIn: parent
+                    visible: avatar.status !== Image.Ready
+                    text: userField.text !== "" ? userField.text[0].toUpperCase() : "›_"
+                    color: Theme.m3onPrimaryContainer
+                    font.family: Theme.display
+                    font.pixelSize: 17
+                    font.weight: Font.DemiBold
+                }
+                Image {
+                    id: avatar
+                    anchors.fill: parent
+                    visible: false
+                    fillMode: Image.PreserveAspectCrop
+                    sourceSize: Qt.size(96, 96)
+                    source: userField.text.trim() !== "" ? "file:///var/lib/AccountsService/icons/" + userField.text.trim() : ""
+                }
+                Rectangle { id: avatarMask; anchors.fill: parent; radius: 20; visible: false }
+                OpacityMask { anchors.fill: parent; visible: avatar.status === Image.Ready; source: avatar; maskSource: avatarMask }
+            }
+            TextInput {
+                id: userField
+                Layout.preferredWidth: Math.max(80, contentWidth + 4)
+                Layout.maximumWidth: 200
+                Layout.leftMargin: 6
+                Layout.rightMargin: 4
+                verticalAlignment: TextInput.AlignVCenter
+                color: Theme.m3onSurface
+                font.family: Theme.body
+                font.pixelSize: 15
+                font.weight: Font.Medium
+                clip: true
+                enabled: !root.busy
+                KeyNavigation.tab: passwordField
+                onAccepted: passwordField.forceActiveFocus()
+                Text { visible: userField.text === ""; anchors.verticalCenter: parent.verticalCenter
+                       text: "User"; color: Theme.m3onSurfaceVariant; font.family: Theme.body; font.pixelSize: 15 }
+            }
+            Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 24; color: Theme.m3outlineVariant }
+            MIcon { Layout.leftMargin: 8; name: "keyboard_alt"; size: 20; color: Theme.m3onSurfaceVariant }
+            Text { Layout.rightMargin: 12; text: "us"; color: Theme.m3onSurfaceVariant; font.family: Theme.body; font.pixelSize: 14 }
         }
-        Text { text: "DevOS"; color: Theme.text; font.family: Theme.display; font.pixelSize: 17; font.weight: Font.Bold }
-        Text { text: root.hostName; color: Theme.faint; font.pixelSize: 13; Layout.leftMargin: 6 }
+
+        // Right: power
+        Island {
+            shown: root.entered
+            anchors.left: mainIsland.right
+            anchors.leftMargin: 10
+            anchors.verticalCenter: mainIsland.verticalCenter
+            IconButton { icon: "bedtime"; onClicked: { power.command = ["systemctl", "suspend"]; power.running = true; } }
+            IconButton { icon: "restart_alt"; onClicked: { power.command = ["systemctl", "reboot"]; power.running = true; } }
+            IconButton { icon: "power_settings_new"; onClicked: { power.command = ["systemctl", "poweroff"]; power.running = true; } }
+        }
+
+        // DevOS and the host, top-left (where end-4's bar would be)
+        RowLayout {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.margins: 22
+            spacing: 10
+            opacity: root.entered ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 600 } }
+            Rectangle {
+                width: 32; height: 32; radius: Theme.radiusSmall
+                color: Theme.m3primaryContainer
+                Text { anchors.centerIn: parent; text: "›_"; color: Theme.m3onPrimaryContainer
+                       font.family: Theme.mono; font.pixelSize: 13; font.weight: Font.Bold }
+            }
+            Text { text: "DevOS"; color: Theme.m3onSurface; font.family: Theme.display; font.pixelSize: 17; font.weight: Font.DemiBold }
+            Text { text: root.hostName; color: Theme.m3onSurfaceVariant; font.family: Theme.body; font.pixelSize: 14; Layout.leftMargin: 4 }
+        }
     }
 
-    // Power, bottom-right
     Process { id: power }
-    RowLayout {
-        visible: root.showLogin
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: 24
-        spacing: 8
-        DButton { label: "Suspend"; variant: "ghost"; small: true
-                  onClicked: { power.command = ["systemctl", "suspend"]; power.running = true; } }
-        DButton { label: "Restart"; variant: "ghost"; small: true
-                  onClicked: { power.command = ["systemctl", "reboot"]; power.running = true; } }
-        DButton { label: "Power off"; variant: "ghost"; small: true
-                  onClicked: { power.command = ["systemctl", "poweroff"]; power.running = true; } }
-    }
 }

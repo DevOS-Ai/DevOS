@@ -16,7 +16,7 @@ Rectangle {
         : variant === "danger" ? Theme.m3errorContainer
         : variant === "ghost" ? Theme.alpha(Theme.m3surfaceContainerHigh, 0)
         : Theme.m3secondaryContainer
-    readonly property color onBase: variant === "primary" ? Theme.m3onPrimary
+    readonly property color fg: variant === "primary" ? Theme.m3onPrimary
         : variant === "danger" ? Theme.m3onErrorContainer
         : variant === "ghost" ? Theme.m3primary
         : Theme.m3onSecondaryContainer
@@ -25,7 +25,7 @@ Rectangle {
     implicitHeight: small ? 30 : 38
     implicitWidth: row.implicitWidth + (small ? 22 : 30)
     radius: Theme.radiusFull
-    color: mouse.pressed ? Theme.pressed(base, onBase) : mouse.containsMouse ? Theme.hover(base, onBase) : base
+    color: mouse.pressed ? Theme.pressed(base, fg) : mouse.containsMouse ? Theme.hover(base, fg) : base
     border.width: activeFocus ? 2 : 0
     border.color: Theme.m3onSurface
     scale: mouse.pressed ? 0.97 : 1
@@ -40,12 +40,12 @@ Rectangle {
             visible: b.icon !== ""
             name: b.icon
             size: b.small ? 16 : 18
-            color: b.onBase
+            color: b.fg
         }
         Text {
             visible: b.label !== ""
             text: b.label
-            color: b.onBase
+            color: b.fg
             font.family: Theme.body
             font.pixelSize: b.small ? 12 : 13
             font.weight: Font.Medium

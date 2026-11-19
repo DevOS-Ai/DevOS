@@ -12,7 +12,7 @@ _end4_commit=2f0c8bf42b803f4d597572f2a014d4e78d7d9f26
 _shapes_commit=e31ec4cb4ebf6a46b267f5c42eabf6874916fa16   # end-4's git submodule at that commit
 pkgname=devos-desktop
 pkgver=0.1.0
-pkgrel=14
+pkgrel=16
 pkgdesc='DevOS desktop: Hyprland + end-4 with the DevOS shell'
 arch=('any')
 url='https://github.com/DevOS'
@@ -115,8 +115,15 @@ package() {
     install -Dm644 -t "$pkgdir/usr/share/applications" "$_devos"/applications/*.desktop
     install -Dm755 "$_devos/session/devos-session" "$pkgdir/usr/bin/devos-session"
     install -Dm644 "$_devos/session/devos-gpu-env" "$pkgdir/usr/lib/devos/gpu-env"
-    # Default wallpaper: the DevOS background (same as GRUB, splash, login, lock).
-    install -Dm644 "$_devos/devos-greeter/background.jpg" "$pkgdir/usr/share/backgrounds/devos/devos.jpg"
+    # DevOS wallpapers (scripts/render-wallpapers.py); devos.jpg is the default (waves),
+    # also the login screen's background. New users find them in end-4's wallpaper picker.
+    install -Dm644 -t "$pkgdir/usr/share/backgrounds/devos" "$_devos"/wallpapers/devos-*.jpg
+    ln -s devos-waves.jpg "$pkgdir/usr/share/backgrounds/devos/devos.jpg"
+    install -d "$pkgdir/etc/skel/Pictures/Wallpapers"
+    local wp
+    for wp in "$_devos"/wallpapers/devos-*.jpg; do
+        ln -s "/usr/share/backgrounds/devos/${wp##*/}" "$pkgdir/etc/skel/Pictures/Wallpapers/${wp##*/}"
+    done
     # Graphical login: Hyprland config, greeter UI, plus the shared DevOS theme and button.
     install -d "$pkgdir/usr/share/devos/greeter"
     install -m644 -t "$pkgdir/usr/share/devos/greeter" "$_devos"/devos-greeter/* \
