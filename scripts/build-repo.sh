@@ -41,6 +41,19 @@ mkdir -p "$REPO_DIR"
 SIGN=()
 [[ -n "${DEVOS_SIGN_KEY:-}" ]] && SIGN=(--sign --key "$DEVOS_SIGN_KEY")
 
+# Dependencies a package needs to build (depends, makedepends, checkdepends) from the
+# official repositories. DevOS packages that depend on each other (devos-agent on
+# devos-ai, for example) are left out: they are not in those repositories and are not
+# needed to build.
+install_build_deps() {
+    local dir="$1" names
+    mapfile -t names < <(cd "$dir" && makepkg --printsrcinfo \
+        | sed -n -E 's/^\s*(depends|makedepends|checkdepends)(_[a-z0-9_]+)? = //p' \
+        | sed -E 's/[<>=].*$//' | grep -v '^devos-' | sort -u)
+    (( ${#names[@]} )) || return 0
+    sudo pacman -S --needed --noconfirm --asdeps "${names[@]}"
+}
+
 built=()
 for dir in "$@"; do
     dir="$(realpath "$dir")"
@@ -50,12 +63,11 @@ for dir in "$@"; do
         (cd "$dir" && extra-x86_64-build -- -- --noconfirm)
         mv "$dir"/*.pkg.tar.zst "$REPO_DIR"/
     else
-        deps=(--nodeps)
         if $SYNCDEPS && grep -q '^build()' "$dir/PKGBUILD"; then
-            deps=(--syncdeps --needed)
+            install_build_deps "$dir" 2>&1 | sed "s/^/  [$name] /"
         fi
         (cd "$dir" && PKGDEST="$REPO_DIR" BUILDDIR="$ROOT/work/makepkg" SRCDEST="${SRCDEST:-$ROOT/work/sources}" makepkg -f --noconfirm "${SIGN[@]}" \
-            "${deps[@]}" 2>&1 | sed "s/^/  [$name] /")
+            --nodeps 2>&1 | sed "s/^/  [$name] /")
     fi
     built+=("$name")
 done
