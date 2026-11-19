@@ -1,0 +1,14 @@
+#!/bin/sh
+# DevOS live ISO session (SRS §7.1): started from the live user's login on tty1.
+# Runs Hyprland with the graphical installer; when Hyprland cannot start (or exits),
+# the text console remains, where `sudo devos-install` is the text installer.
+. /usr/lib/devos-installer/gpu-env
+
+export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=Hyprland
+# The installer uses the colors of the DevOS wallpaper it shows.
+export DEVOS_THEME_FILE=/usr/share/devos-installer/ui/colors.json
+
+launch="Hyprland"
+command -v start-hyprland >/dev/null && launch="start-hyprland --"
+# shellcheck disable=SC2086  # $launch is a command and its separator
+$launch --config /usr/share/devos-installer/hyprland.lua >/tmp/devos-live-session.log 2>&1

@@ -1,0 +1,6 @@
+# DevOS live ISO: the live user's login on tty1 starts the graphical installer.
+if [[ -z "$WAYLAND_DISPLAY" && "$(tty)" == /dev/tty1 ]]; then
+    /usr/lib/devos-installer/devos-live-session
+    print -P "\n%F{cyan}DevOS live system.%f The graphical installer has closed."
+    print "Text installer: sudo devos-install    Graphical session again: devos-live-session\n"
+fi

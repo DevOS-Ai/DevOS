@@ -24,4 +24,5 @@ file_permissions=(
   ["/root/.automated_script.sh"]="0:0:755"
   ["/root/.gnupg"]="0:0:700"
   ["/usr/local/bin/choose-mirror"]="0:0:755"
+  ["/etc/sudoers.d/devos-live"]="0:0:440"
 )

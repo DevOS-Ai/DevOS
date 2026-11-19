@@ -1,19 +1,39 @@
 # Maintainer: Ehsan Fazli
-# DevOS installer (SRS §7.1). Shipped on the live ISO.
+# DevOS installer (SRS §7.1). Shipped on the live ISO: the graphical installer (Quickshell,
+# in the live session's Hyprland) and devos-install, which does the work.
 
 pkgname=devos-installer
 pkgver=0.1.0
-pkgrel=2
-pkgdesc='DevOS installer (UEFI, GRUB, optional LUKS2)'
+pkgrel=3
+pkgdesc='DevOS installer: graphical (Hyprland, Quickshell) and text (UEFI, GRUB, optional LUKS2)'
 arch=('any')
 url='https://github.com/DevOS'
 license=('GPL-3.0-or-later')
 depends=('bash' 'arch-install-scripts' 'gptfdisk' 'parted' 'cryptsetup' 'dosfstools' 'e2fsprogs'
-         'util-linux' 'libnewt' 'curl')
+         'util-linux' 'libnewt' 'curl' 'openssl' 'sudo'
+         # graphical installer and live session
+         'hyprland' 'devos-quickshell' 'qt6-5compat' 'qt6-svg' 'devos-fonts' 'noto-fonts'
+         'kitty' 'networkmanager' 'mesa' 'zsh')
 source=()
 
 package() {
-    install -Dm755 "$startdir/../../installer/devos-install" "$pkgdir/usr/bin/devos-install"
-    install -Dm644 "$startdir/../../installer/packages.list" "$pkgdir/usr/share/devos-installer/packages.list"
-    install -Dm644 "$startdir/../../installer/example.conf" "$pkgdir/usr/share/doc/devos-installer/example.conf"
+    local _root="$startdir/../.."
+    install -Dm755 "$_root/installer/devos-install" "$pkgdir/usr/bin/devos-install"
+    install -Dm644 "$_root/installer/packages.list" "$pkgdir/usr/share/devos-installer/packages.list"
+    install -Dm644 "$_root/installer/example.conf" "$pkgdir/usr/share/doc/devos-installer/example.conf"
+
+    # Graphical installer, with the shared DevOS theme, button and icon components, the
+    # default wallpaper and its colors (the login screen uses the same).
+    local ui="$pkgdir/usr/share/devos-installer/ui"
+    install -Dm644 -t "$ui" "$_root"/installer/ui/*.qml \
+        "$_root"/desktop/devos-shell/{Theme,DButton,MIcon}.qml \
+        "$_root"/desktop/devos-greeter/colors.json
+    install -Dm644 "$_root/desktop/wallpapers/devos-waves.jpg" "$ui/background.jpg"
+
+    # Live session.
+    install -Dm644 "$_root/installer/live/hyprland.lua" "$pkgdir/usr/share/devos-installer/hyprland.lua"
+    install -Dm644 "$_root/installer/live/zprofile" "$pkgdir/usr/share/devos-installer/live/zprofile"
+    install -Dm755 -t "$pkgdir/usr/lib/devos-installer" \
+        "$_root/installer/live/devos-live-session" "$_root/installer/live/devos-installer-ui"
+    install -Dm644 "$_root/desktop/session/devos-gpu-env" "$pkgdir/usr/lib/devos-installer/gpu-env"
 }

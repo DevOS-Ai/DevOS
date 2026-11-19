@@ -3,6 +3,8 @@
 #
 #   devos-install                      interactive (whiptail TUI)
 #   devos-install --config FILE        unattended (INST-007); see installer/example.conf
+#   devos-install --config - --ui      the graphical installer: settings on stdin (so no
+#                                      password touches a disk), progress as "::" lines
 #   devos-install --post /mnt          apply the DevOS layer to a system installed by other
 #                                      means (e.g. archinstall with custom partitioning)
 #
@@ -14,6 +16,14 @@ set -euo pipefail
 
 TARGET=/mnt
 LOG=/tmp/devos-install.log
+# The live ISO carries the [devos] repository and every package an install can need on the
+# medium itself (outside the squashfs), mounted here by the archiso boot hook.
+MEDIUM=/run/archiso/bootmnt/devos
+OFFLINE_REPO="$MEDIUM/offline"
+DEVOS_REPO="$MEDIUM/repo"
+UI=0
+STEP=0
+STEPS=5
 DEVOS_GRUB_DEFAULTS=/usr/share/devos/grub/default-grub
 # Package set: one list shared with the ISO's offline cache (installer/packages.list).
 PACKAGE_LIST=/usr/share/devos-installer/packages.list
@@ -25,8 +35,19 @@ mapfile -t DEVOS_PACKAGES < <(printf '%s\n' "${INSTALL_PACKAGES[@]}" | grep '^de
 DISK="" HOSTNAME_="devos" USERNAME="" PASSWORD="" PASSWORD_HASH="" TIMEZONE="UTC"
 LOCALE="en_US.UTF-8" KEYMAP="us" ENCRYPT="no" LUKS_PASSWORD="" PROFILES="" ASSUME_YES="no"
 
-log()  { printf '%s %s\n' "$(date +%T)" "$*" >>"$LOG"; printf '\033[1;36m==>\033[0m %s\n' "$*"; }
-die()  { printf '%s ERROR %s\n' "$(date +%T)" "$*" >>"$LOG"; printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
+log()  { printf '%s %s\n' "$(date +%T)" "$*" >>"$LOG"; (( UI )) || printf '\033[1;36m==>\033[0m %s\n' "$*"; }
+die()  {
+    printf '%s ERROR %s\n' "$(date +%T)" "$*" >>"$LOG"
+    if (( UI )); then printf '::error %s\n' "$*"; else printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; fi
+    exit 1
+}
+# Installation phases; the graphical installer shows them as steps ("::step N TOTAL text").
+step() {
+    STEP=$((STEP + 1))
+    log "$*"
+    (( UI )) && printf '::step %d %d %s\n' "$STEP" "$STEPS" "$*"
+    return 0
+}
 run()  { "$@" >>"$LOG" 2>&1 || die "failed: $1 (see $LOG)"; }
 chroot_run() { run arch-chroot "$TARGET" "$@"; }
 
@@ -40,10 +61,8 @@ preflight() {
 }
 
 check_network() {
-    # The DevOS ISO carries every package it installs; only extra profiles need the network.
-    if [[ -f /opt/offline-repo/core.db && -z "$PROFILES" ]]; then
-        return
-    fi
+    # The DevOS ISO carries every package it installs, developer profiles included.
+    [[ -f "$OFFLINE_REPO/core.db" ]] && return
     curl -fsS --max-time 10 -o /dev/null https://archlinux.org || \
         die "no network connection. Connect first (Wi-Fi: nmtui), then run devos-install again."
 }
@@ -52,10 +71,11 @@ check_network() {
 # KEY=VALUE lines; parsed, never sourced, so a config file cannot run code.
 load_config() {
     local file="$1" key value
+    [[ "$file" == - ]] && file=/dev/stdin
     [[ -r "$file" ]] || die "cannot read $file"
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
-        [[ "$line" =~ ^([A-Z_]+)=(.*)$ ]] || die "invalid line in $file: $line"
+        [[ "$line" =~ ^([A-Z_]+)=(.*)$ ]] || die "invalid line in the settings: ${line%%=*}"
         key="${BASH_REMATCH[1]}" value="${BASH_REMATCH[2]}"
         value="${value#\"}" value="${value%\"}"
         case "$key" in
@@ -64,7 +84,7 @@ load_config() {
             TIMEZONE) TIMEZONE="$value" ;; LOCALE) LOCALE="$value" ;; KEYMAP) KEYMAP="$value" ;;
             ENCRYPT) ENCRYPT="$value" ;; LUKS_PASSWORD) LUKS_PASSWORD="$value" ;;
             PROFILES) PROFILES="$value" ;; ASSUME_YES) ASSUME_YES="$value" ;;
-            *) die "unknown setting in $file: $key" ;;
+            *) die "unknown setting: $key" ;;
         esac
     done <"$file"
 }
@@ -134,7 +154,7 @@ confirm() {
 
 # ------------------------------------------------------------- installation
 partition() {
-    log "Partitioning $DISK"
+    step "Preparing the disk"
     umount -R "$TARGET" 2>/dev/null || true
     run wipefs --all --force "$DISK"
     run sgdisk --zap-all "$DISK"
@@ -161,18 +181,37 @@ partition() {
 }
 
 install_base() {
-    log "Installing packages (this takes a while)"
+    step "Installing packages"
     local profiles=() p
     for p in $PROFILES; do profiles+=("devos-profile-$p"); done
     # The live keyring (populated at boot) verifies packages and is copied to the target;
     # -K would start from an empty keyring and need the network to fetch keys.
-    run pacstrap "$TARGET" "${INSTALL_PACKAGES[@]}" "${profiles[@]}"
+    if ! pacstrap "$TARGET" "${INSTALL_PACKAGES[@]}" "${profiles[@]}" 2>&1 | track_packages; then
+        die "installing the packages failed (see $LOG)"
+    fi
     install_pacman_conf
     genfstab -U "$TARGET" >>"$TARGET/etc/fstab"
 }
 
+# pacstrap's output goes to the log; the graphical installer gets "::progress PERCENT" from
+# pacman's "Packages (N)" summary and its "installing <pkg>" lines.
+track_packages() {
+    local total=0 done_=0 line
+    while IFS= read -r line; do
+        printf '%s\n' "$line" >>"$LOG"
+        (( UI )) || continue
+        if [[ "$line" =~ ^Packages\ \(([0-9]+)\) ]]; then
+            total="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^(\([[:space:]]*[0-9]+/[0-9]+\)\ )?(installing|upgrading|reinstalling)\  ]] && (( total > 0 )); then
+            done_=$((done_ + 1))
+            line="${line#*installing }"
+            printf '::progress %d %s\n' $((done_ * 100 / total)) "${line%...}"
+        fi
+    done
+}
+
 configure_system() {
-    log "Configuring the system"
+    step "Setting up DevOS"
     chroot_run ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
     chroot_run hwclock --systohc
     sed -i "s/^#\(${LOCALE//./\\.} \)/\1/" "$TARGET/etc/locale.gen"
@@ -218,7 +257,7 @@ configure_system() {
 }
 
 install_bootloader() {
-    log "Installing GRUB with the DevOS theme"
+    step "Installing the boot loader"
     apply_grub_defaults "$TARGET"
     if [[ "$ENCRYPT" == yes ]]; then
         local uuid
@@ -239,11 +278,11 @@ install_pacman_conf() {
     [[ -r /etc/devos/repo-url ]] && url="$(head -1 /etc/devos/repo-url)"
     # The ISO's offline package cache does not exist on the installed system.
     local conf
-    conf="$(sed '\|^Server = file:///opt/offline-repo$|d' /etc/pacman.conf)"
+    conf="$(sed "\|^Server = file://$OFFLINE_REPO\$|d" /etc/pacman.conf)"
     if [[ -n "$url" ]]; then
         # Per-line anchors; ${conf//…} cannot express ^…$.
         # shellcheck disable=SC2001
-        sed "s|^Server = file:///opt/devos-repo$|Server = $url|" <<<"$conf" >"$TARGET/etc/pacman.conf"
+        sed "s|^Server = file://$DEVOS_REPO\$|Server = $url|" <<<"$conf" >"$TARGET/etc/pacman.conf"
     else
         # No published repository yet: keep the installed system on the official repos only.
         sed '/^\[devos\]/,/^$/d' <<<"$conf" >"$TARGET/etc/pacman.conf"
@@ -275,11 +314,14 @@ apply_grub_defaults() {
 }
 
 finish() {
+    step "Finishing"
     cp "$LOG" "$TARGET/var/log/devos-install.log"   # INST-006: contains no passwords
     sync
     umount -R "$TARGET"
     [[ "$ENCRYPT" == yes ]] && cryptsetup close root
     log "DevOS is installed. Remove the installation medium and reboot."
+    (( UI )) && printf '::done\n'
+    return 0
 }
 
 post_install() {
@@ -307,7 +349,9 @@ main() {
     chmod 600 "$LOG"
     case "${1:-}" in
         --post) preflight; [[ -n "${2:-}" ]] || die "usage: devos-install --post /mnt"; post_install "$2"; exit ;;
-        --config) preflight; load_config "${2:?usage: devos-install --config FILE}" ;;
+        --config)
+            [[ "${3:-}" == --ui ]] && UI=1
+            preflight; load_config "${2:?usage: devos-install --config FILE}" ;;
         "") preflight; interactive ;;
         -h|--help) sed -n '2,13p' "$0"; exit ;;
         *) die "unknown option: $1" ;;
@@ -315,7 +359,7 @@ main() {
     validate
     check_network
     confirm
-    log "Installing DevOS to $DISK (hostname $HOSTNAME_, user $USERNAME, encryption $ENCRYPT)"
+    log "Installing DevOS to $DISK (hostname $HOSTNAME_, user $USERNAME, encryption $ENCRYPT, profiles: ${PROFILES:-none})"
     partition
     install_base
     configure_system

@@ -12,8 +12,11 @@
 # Environment:
 #   DEVOS_REPO_DIR  local [devos] repository (default: repo/x86_64)
 #   DEVOS_REPO_URL  published [devos] URL for installed systems (optional; see OS-011)
-#   DEVOS_OFFLINE   1 (default): put every package of installer/packages.list on the ISO
+#   DEVOS_OFFLINE   1 (default): put every package an install can need on the ISO
+#                   (installer/packages.list and every developer profile)
 #   DEVOS_PKG_CACHE download cache kept between builds (default: work/pkgcache)
+#   DEVOS_MEDIUM_DIR staging of the files placed on the ISO next to the live system
+#                   (default: work/medium; several GB, may be on another disk)
 
 set -euo pipefail
 
@@ -38,6 +41,8 @@ done
 for cmd in mkarchiso mksquashfs grub-mkstandalone xorriso mformat mcopy; do
     command -v "$cmd" >/dev/null || die "missing '$cmd' (pacman -S archiso grub mtools)"
 done
+CACHE="$(realpath -m "${DEVOS_PKG_CACHE:-$ROOT/work/pkgcache}")"
+MEDIUM="$(realpath -m "${DEVOS_MEDIUM_DIR:-$ROOT/work/medium}")"
 
 DEVOS_VERSION="$(tr -d '[:space:]' <"$ROOT/VERSION")"
 [[ "$DEVOS_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || die "VERSION is not SemVer: '$DEVOS_VERSION'"
@@ -59,35 +64,48 @@ PROFILE="$WORK_DIR/profile"
 
 log "Staging profile"
 cp -a -- "$ROOT/iso" "$PROFILE"
+# The checkout belongs to whoever built it; on the ISO these files are root's (uid 1000 is
+# the live user there).
+chown -R 0:0 -- "$PROFILE/airootfs"
 # Theme files land in /boot/grub/themes/devos on the ISO (mkarchiso copies
 # every non-.cfg file under grub/).
 mkdir -p -- "$PROFILE/grub/themes"
 cp -a -- "$ROOT/boot/grub/themes/devos" "$PROFILE/grub/themes/devos"
 sed -i "s|%DEVOS_VERSION%|$DEVOS_VERSION|g" "$PROFILE"/grub/*.cfg "$PROFILE"/airootfs/etc/os-release "$PROFILE"/airootfs/etc/issue
 
-# [devos] repository: from the local build while building, and on the medium for
-# the live system so the installer works offline for DevOS packages.
+# Package repositories live on the medium itself, next to the live system (not inside its
+# squashfs: packages are compressed already, and the live system stays small). The live
+# system reads them where archiso mounts the medium:
+#   /run/archiso/bootmnt/devos/repo     [devos]
+#   /run/archiso/bootmnt/devos/offline  every package an install needs, with signatures
 # TODO(SEC-011): switch to SigLevel = Required once packages are signed.
+LIVE_MEDIUM=/run/archiso/bootmnt/devos
 DEVOS_REPO_CONF='[devos]
 SigLevel = Optional TrustAll'
+# Building: [devos] from the local build; downloads into the cache kept between builds
+# (the host's pacman cache is reused read-only).
 printf '\n%s\nServer = file://%s\n' "$DEVOS_REPO_CONF" "$REPO_DIR" >>"$PROFILE/pacman.conf"
-install -d "$PROFILE/airootfs/opt/devos-repo" "$PROFILE/airootfs/etc/devos"
-cp -- "$REPO_DIR"/devos.db* "$REPO_DIR"/devos.files* "$REPO_DIR"/*.pkg.tar.zst "$PROFILE/airootfs/opt/devos-repo/"
-{ cat "$ROOT/iso/pacman.conf"; printf '\n%s\nServer = file:///opt/devos-repo\n' "$DEVOS_REPO_CONF"; } \
+install -d "$CACHE"
+sed -i "/^\[options\]/a CacheDir = $CACHE/\nCacheDir = /var/cache/pacman/pkg/" "$PROFILE/pacman.conf"
+
+rm -rf -- "$MEDIUM"
+install -d "$MEDIUM/devos/repo" "$PROFILE/airootfs/etc/devos"
+cp -- "$REPO_DIR"/devos.db* "$REPO_DIR"/devos.files* "$REPO_DIR"/*.pkg.tar.zst "$MEDIUM/devos/repo/"
+{ cat "$ROOT/iso/pacman.conf"; printf '\n%s\nServer = file://%s/repo\n' "$DEVOS_REPO_CONF" "$LIVE_MEDIUM"; } \
     >"$PROFILE/airootfs/etc/pacman.conf"
 [[ -n "${DEVOS_REPO_URL:-}" ]] && echo "$DEVOS_REPO_URL" >"$PROFILE/airootfs/etc/devos/repo-url"
 
-# Offline install: the packages the installer needs, plus the signed official
-# databases from the same moment, so pacman verifies every package offline
-# exactly as it would online. Listed first; the mirrors remain the fallback.
+# Offline install: every package an install can need (the base system and every developer
+# profile), plus the signed official databases from the same moment, so pacman verifies
+# every package offline exactly as it would online. Listed first; mirrors remain the fallback.
 if [[ "${DEVOS_OFFLINE:-1}" == 1 ]]; then
-    log "Building the offline package cache"
-    OFF="$PROFILE/airootfs/opt/offline-repo"
+    log "Building the offline package repository"
+    OFF="$MEDIUM/devos/offline"
     DB="$WORK_DIR/offline-db"
-    CACHE="$(realpath -m "${DEVOS_PKG_CACHE:-$ROOT/work/pkgcache}")"
-    install -d "$OFF" "$DB" "$CACHE"
-    mapfile -t pkgs < <(grep -vE '^\s*(#|$)' "$ROOT/installer/packages.list")
-    pac=(pacman --noconfirm --config "$PROFILE/pacman.conf" --dbpath "$DB" --cachedir "$CACHE")
+    install -d "$OFF" "$DB"
+    mapfile -t pkgs < <(grep -vE '^\s*(#|$)' "$ROOT/installer/packages.list" \
+        | grep -v '^devos-profile-'; printf 'devos-profile-%s\n' general web backend systems ai embedded)
+    pac=(pacman --noconfirm --config "$PROFILE/pacman.conf" --dbpath "$DB")
     "${pac[@]}" -Sy >/dev/null
     # Arch databases no longer embed signatures: each package needs its .sig.
     # Re-fetch cached packages whose signature download failed earlier.
@@ -100,21 +118,33 @@ if [[ "${DEVOS_OFFLINE:-1}" == 1 ]]; then
         log "Download failed, retrying ($attempt/5)"
         sleep 5
     done
-    # Copy exactly the resolved set; [devos] packages are already on the ISO.
+    # Copy exactly the resolved set; [devos] packages are in devos/repo already.
     while read -r repo file; do
         [[ "$repo" == devos ]] && continue
-        pkg="$CACHE/$file"
-        [[ -f "$pkg.sig" ]] || die "missing signature for $file; run the build again"
+        pkg=""
+        for dir in "$CACHE" /var/cache/pacman/pkg; do
+            [[ -f "$dir/$file" && -f "$dir/$file.sig" ]] && { pkg="$dir/$file"; break; }
+        done
+        [[ -n "$pkg" ]] || die "missing $file or its signature; run the build again"
         cp -- "$pkg" "$pkg.sig" "$OFF/"
     done < <("${pac[@]}" -Sp --print-format '%r %f' "${pkgs[@]}")
     cp -- "$DB/sync/core.db" "$DB/sync/extra.db" "$OFF/"
-    sed -i -e '/^\[core\]$/a Server = file:///opt/offline-repo' \
-           -e '/^\[extra\]$/a Server = file:///opt/offline-repo' "$PROFILE/airootfs/etc/pacman.conf"
-    log "Offline cache: $(find "$OFF" -name '*.pkg.tar.zst' | wc -l) packages, $(du -sh "$OFF" | cut -f1)"
+    sed -i -e "/^\[core\]\$/a Server = file://$LIVE_MEDIUM/offline" \
+           -e "/^\[extra\]\$/a Server = file://$LIVE_MEDIUM/offline" "$PROFILE/airootfs/etc/pacman.conf"
+    log "Offline repository: $(find "$OFF" -name '*.pkg.tar.zst' | wc -l) packages, $(du -sh "$OFF" | cut -f1)"
 fi
 
+# mkarchiso puts only its own tree on the ISO; graft the repositories in next to it.
+MKARCHISO="$WORK_DIR/mkarchiso"
+sed 's|^        "${isofs_dir}/"$|        -graft-points "${isofs_dir}/" "/devos/=${DEVOS_MEDIUM_DIR}/devos/"|' \
+    "$(command -v mkarchiso)" >"$MKARCHISO"
+[[ "$(grep -c '"/devos/=${DEVOS_MEDIUM_DIR}/devos/"' "$MKARCHISO")" == 1 ]] \
+    || die "this mkarchiso version is not supported (could not add the repositories to the ISO)"
+chmod +x "$MKARCHISO"
+export DEVOS_MEDIUM_DIR="$MEDIUM"
+
 log "Building DevOS $DEVOS_VERSION"
-mkarchiso -v -w "$WORK_DIR/build" -o "$OUT_DIR" "$PROFILE"
+"$MKARCHISO" -v -w "$WORK_DIR/build" -o "$OUT_DIR" "$PROFILE"
 
 ISO="$OUT_DIR/devos-$DEVOS_VERSION-x86_64.iso"
 [[ -f "$ISO" ]] || die "expected $ISO was not produced"
@@ -124,6 +154,6 @@ ISO="$OUT_DIR/devos-$DEVOS_VERSION-x86_64.iso"
 if [[ -n "${SUDO_UID:-}" ]]; then
     chown "$SUDO_UID:${SUDO_GID:-}" "$OUT_DIR" "$ISO" "$ISO.sha256"
 fi
-$KEEP_WORK || rm -rf -- "$WORK_DIR"
+$KEEP_WORK || rm -rf -- "$WORK_DIR" "$MEDIUM"
 
 log "Done: $ISO ($(du -h "$ISO" | cut -f1))"
